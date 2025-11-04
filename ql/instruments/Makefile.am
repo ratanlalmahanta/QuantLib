@@ -58,11 +58,13 @@ this_include_HEADERS = \
     overnightindexfuture.hpp \
     partialtimebarrieroption.hpp \
     payoffs.hpp \
+    perpetualfutures.hpp \
     quantobarrieroption.hpp \
     quantoforwardvanillaoption.hpp \
     quantovanillaoption.hpp \
     simplechooseroption.hpp \
     simplifynotificationgraph.hpp \
+    softbarrieroption.hpp \
     stickyratchet.hpp \
     stock.hpp \
     swap.hpp \
@@ -129,11 +131,13 @@ cpp_files = \
     overnightindexfuture.cpp \
     partialtimebarrieroption.cpp \
     payoffs.cpp \
+    perpetualfutures.cpp \
     quantobarrieroption.cpp \
     quantoforwardvanillaoption.cpp \
     quantovanillaoption.cpp \
     simplechooseroption.cpp \
     simplifynotificationgraph.cpp \
+    softbarrieroption.cpp \
     stickyratchet.cpp \
     stock.cpp \
     swap.cpp \
