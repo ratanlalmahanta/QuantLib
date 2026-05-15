@@ -13,6 +13,7 @@ this_include_HEADERS = \
 	mcamericanbasketengine.hpp \
 	mceuropeanbasketengine.hpp \
 	operatorsplittingspreadengine.hpp \
+	pearsonspreadengine.hpp \
 	singlefactorbsmbasketengine.hpp \
 	spreadblackscholesvanillaengine.hpp \
 	stulzengine.hpp \
@@ -28,6 +29,7 @@ cpp_files = \
 	mcamericanbasketengine.cpp \
 	mceuropeanbasketengine.cpp \
 	operatorsplittingspreadengine.cpp \
+	pearsonspreadengine.cpp \
 	singlefactorbsmbasketengine.cpp \
 	spreadblackscholesvanillaengine.cpp \
 	stulzengine.cpp \

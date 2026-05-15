@@ -47,11 +47,6 @@ namespace QuantLib {
             return result;
         }
 
-        bool allowsEndOfMonth(const Period& tenor) {
-            return (tenor.units() == Months || tenor.units() == Years)
-                && tenor >= 1*Months;
-        }
-
     }
 
 
@@ -222,7 +217,10 @@ namespace QuantLib {
                         (calendar_.adjust(dates_.back(),convention)!=
                          calendar_.adjust(firstDate_,convention))) {
                         dates_.push_back(firstDate_);
-                        isRegular_.push_back(false);
+                        isRegular_.push_back(
+                            nullCalendar.advance(dates_[dates_.size()-2],
+                                -1*(*tenor_), convention, *endOfMonth_) ==
+                            firstDate_);
                     }
                     break;
                 } else {
@@ -240,7 +238,10 @@ namespace QuantLib {
             if (calendar_.adjust(dates_.back(),convention)!=
                 calendar_.adjust(effectiveDate,convention)) {
                 dates_.push_back(effectiveDate);
-                isRegular_.push_back(false);
+                isRegular_.push_back(
+                    nullCalendar.advance(dates_[dates_.size()-2],
+                        -1*(*tenor_), convention, *endOfMonth_) ==
+                    effectiveDate);
             }
 	    std::reverse(dates_.begin(), dates_.end());
 	    std::reverse(isRegular_.begin(), isRegular_.end());
@@ -313,7 +314,10 @@ namespace QuantLib {
                         (calendar_.adjust(dates_.back(),convention)!=
                          calendar_.adjust(nextToLastDate_,convention))) {
                         dates_.push_back(nextToLastDate_);
-                        isRegular_.push_back(false);
+                        isRegular_.push_back(
+                            nullCalendar.advance(dates_[dates_.size()-2],
+                                1*(*tenor_), convention, *endOfMonth_) ==
+                            nextToLastDate_);
                     }
                     break;
                 } else {
@@ -647,6 +651,10 @@ namespace QuantLib {
             }
         }
         return result;
+    }
+
+    bool allowsEndOfMonth(const Period& tenor) {
+        return (tenor.units() == Months || tenor.units() == Years) && tenor >= 1 * Months;
     }
 
 }

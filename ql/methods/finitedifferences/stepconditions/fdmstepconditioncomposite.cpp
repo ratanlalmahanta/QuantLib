@@ -90,8 +90,18 @@ namespace QuantLib {
         std::list<ext::shared_ptr<StepCondition<Array> > > stepConditions;
 
         if (!cashFlow.empty()) {
+            const Date maturityDate = exercise->lastDate();
+            DividendSchedule dividends;
+            std::copy_if(
+                cashFlow.begin(), cashFlow.end(),
+                std::back_inserter(dividends),
+                [refDate, maturityDate](const ext::shared_ptr<Dividend>& div) -> bool {
+                    return div->date() >= refDate && div->date() <= maturityDate;
+                }
+            );
+
             auto dividendCondition =
-                ext::make_shared<FdmDividendHandler>(cashFlow, mesher,
+                ext::make_shared<FdmDividendHandler>(dividends, mesher,
                                                      refDate, dayCounter, 0);
             stepConditions.push_back(dividendCondition);
 
@@ -114,8 +124,11 @@ namespace QuantLib {
                    || exercise->type() == Exercise::Bermudan,
                    "exercise type is not supported");
         if (exercise->type() == Exercise::American) {
+            const Time exerciseStart =
+                dayCounter.yearFraction(refDate, exercise->date(0));
             stepConditions.push_back(ext::shared_ptr<StepCondition<Array> >(
-                          new FdmAmericanStepCondition(mesher,calculator)));
+                          new FdmAmericanStepCondition(mesher, calculator,
+                                                      exerciseStart)));
         }
         else if (exercise->type() == Exercise::Bermudan) {
             ext::shared_ptr<FdmBermudanStepCondition> bermudanCondition(

@@ -50,6 +50,9 @@
     <ClCompile Include="blackformula.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="blackvolsurfacedelta.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="bonds.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -179,6 +182,9 @@
     <ClCompile Include="forwardrateagreement.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="g2process.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="garch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -222,6 +228,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="interestrates.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="interpolatedsmilesection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="interpolations.cpp">
@@ -326,6 +335,9 @@
     <ClCompile Include="period.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="piecewiseblackvariancesurface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="piecewiseyieldcurve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -377,9 +389,6 @@
     <ClCompile Include="solvers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="spreadoption.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="squarerootclvmodel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -414,9 +423,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tracing.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="transformedgrid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="twoassetbarrieroption.cpp">
@@ -495,16 +501,31 @@
     <ClCompile Include="fittedbonddiscountcurve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="floatfloatswap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ultimateforwardtermstructure.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="basisswapratehelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="constnotionalcrosscurrencybasisswap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="constnotionalcrosscurrencyfixedvsfloatingswap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="constnotionalcrosscurrencyswap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="crosscurrencyratehelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="multipleresetscoupons.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="multipleresetsswap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="zerocouponswap.cpp">
@@ -535,6 +556,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bacheliercalculator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fxforward.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

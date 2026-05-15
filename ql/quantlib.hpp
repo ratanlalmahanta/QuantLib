@@ -3,7 +3,7 @@
 
 #include <ql/qldefines.hpp>
 #include <ql/version.hpp>
-#ifdef BOOST_MSVC
+#if !defined(BOOST_ALL_NO_LIB) && defined(BOOST_MSVC)
 #  include <ql/auto_link.hpp>
 #endif
 
@@ -17,7 +17,6 @@
 #include <ql/exchangerate.hpp>
 #include <ql/exercise.hpp>
 #include <ql/event.hpp>
-#include <ql/grid.hpp>
 #include <ql/handle.hpp>
 #include <ql/index.hpp>
 #include <ql/instrument.hpp>

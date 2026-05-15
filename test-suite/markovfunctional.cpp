@@ -17,7 +17,6 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "preconditions.hpp"
 #include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/cashflows/cashflowvectors.hpp>
@@ -37,6 +36,7 @@
 #include <ql/termstructures/volatility/capfloor/capfloortermvolsurface.hpp>
 #include <ql/termstructures/volatility/interpolatedsmilesection.hpp>
 #include <ql/termstructures/volatility/kahalesmilesection.hpp>
+#include <ql/termstructures/volatility/smilesectionutils.hpp>
 #include <ql/termstructures/volatility/optionlet/constantoptionletvol.hpp>
 #include <ql/termstructures/volatility/optionlet/optionletstripper1.hpp>
 #include <ql/termstructures/volatility/optionlet/strippedoptionletadapter.hpp>
@@ -841,7 +841,54 @@ BOOST_AUTO_TEST_CASE(testKahaleSmileSection) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(testCalibrationOneInstrumentSet, *precondition(if_speed(Slow))) {
+BOOST_AUTO_TEST_CASE(testSmileSectionUtilsWShapedSmile) {
+
+    BOOST_TEST_MESSAGE(
+        "Testing SmileSectionUtils with W-shaped smile...");
+
+    // A smile with arbitrage around the ATM point forces
+    // SmileSectionUtils to push its central index toward the grid
+    // boundary. Before the fix for #2184, the while loop at line 137
+    // evaluated af() before the bounds check, causing an out-of-bounds
+    // access in c_[]. The fix swaps the condition order so that the
+    // bounds check short-circuits first.
+
+    const Real atm = 0.05;
+    const Real t = 1.0;
+
+    const Real strikes0[] = { 0.01, 0.02, 0.03, 0.04, 0.05,
+                              0.06, 0.07, 0.08, 0.09, 0.10 };
+    const Real vols0[] = { 0.35, 0.15, 0.40, 0.15, 0.35,
+                           0.15, 0.40, 0.15, 0.35, 0.20 };
+
+    const std::vector<Real> strikes(strikes0, strikes0 + 10);
+
+    std::vector<Real> money;
+    std::vector<Real> calls;
+    for (Size i = 0; i < strikes.size(); i++) {
+        money.push_back(strikes[i] / atm);
+        calls.push_back(blackFormula(Option::Call, strikes[i], atm,
+                                     vols0[i] * std::sqrt(t), 1.0, 0.0));
+    }
+
+    std::vector<Real> stdDevs = impliedStdDevs(atm, strikes, calls);
+    ext::shared_ptr<SmileSection> sec(
+        new InterpolatedSmileSection<Linear>(t, strikes, stdDevs, atm));
+
+    // SmileSectionUtils must construct without crashing.
+    // The central index will be pushed rightward through the
+    // arbitrageable region; the fix ensures the loop terminates
+    // at the boundary instead of reading past the end of c_[].
+    SmileSectionUtils utils(*sec, money, atm);
+
+    // The arbitrage-free region should be valid.
+    std::pair<Size, Size> idx = utils.arbitragefreeIndices();
+    if (idx.second <= idx.first)
+        BOOST_ERROR("arbitrage-free region is empty: left index "
+                    << idx.first << ", right index " << idx.second);
+}
+
+BOOST_AUTO_TEST_CASE(testCalibrationOneInstrumentSet) {
 
     const Real tol0 = 0.0001; //  1bp tolerance for model zero rates vs. market
                               // zero rates (note that model zero rates are
@@ -1069,7 +1116,7 @@ BOOST_AUTO_TEST_CASE(testCalibrationOneInstrumentSet, *precondition(if_speed(Slo
     }
 }
 
-BOOST_AUTO_TEST_CASE(testVanillaEngines, *precondition(if_speed(Slow))) {
+BOOST_AUTO_TEST_CASE(testVanillaEngines) {
 
     const Real tol1 = 0.0001; // 1bp tolerance for model engine call put premia
                               // vs. black premia
@@ -1350,7 +1397,7 @@ BOOST_AUTO_TEST_CASE(testVanillaEngines, *precondition(if_speed(Slow))) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(testCalibrationTwoInstrumentSets, *precondition(if_speed(Fast))) {
+BOOST_AUTO_TEST_CASE(testCalibrationTwoInstrumentSets) {
 
     const Real tol1 = 0.1; // 0.1 times vega tolerance for model vs. market in
                            // second instrument set

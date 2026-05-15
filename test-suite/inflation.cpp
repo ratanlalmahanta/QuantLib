@@ -24,6 +24,7 @@
 #include <ql/indexes/inflation/ukrpi.hpp>
 #include <ql/indexes/inflation/euhicp.hpp>
 #include <ql/indexes/inflation/ukhicp.hpp>
+#include <ql/indexes/inflation/uscpi.hpp>
 #include <ql/indexes/inflation/aucpi.hpp>
 #include <ql/termstructures/inflation/piecewisezeroinflationcurve.hpp>
 #include <ql/termstructures/inflation/piecewiseyoyinflationcurve.hpp>
@@ -32,6 +33,7 @@
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/time/daycounters/thirty360.hpp>
 #include <ql/time/calendars/unitedkingdom.hpp>
+#include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/schedule.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
@@ -42,6 +44,7 @@
 #include <ql/cashflows/fixedratecoupon.hpp>
 #include <ql/cashflows/zeroinflationcashflow.hpp>
 #include <ql/instruments/yearonyearinflationswap.hpp>
+#include <ql/termstructures/globalbootstrap.hpp>
 #include <functional>
 
 using boost::unit_test_framework::test_suite;
@@ -368,10 +371,11 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructure) {
     Period observationLag = Period(3, Months);
     DayCounter dc = Thirty360(Thirty360::BondBasis);
     Frequency frequency = Monthly;
+    CPI::InterpolationType interpolation = CPI::Flat;
 
     auto makeHelper = [&](const Handle<Quote>& quote, const Date& maturity) {
         return ext::make_shared<ZeroCouponInflationSwapHelper>(
-            quote, observationLag, maturity, calendar, bdc, dc, ii, CPI::AsIndex);
+            quote, observationLag, maturity, calendar, bdc, dc, ii, interpolation);
     };
     auto helpers = makeHelpers<ZeroInflationTermStructure>(zcData, makeHelper);
 
@@ -402,7 +406,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructure) {
                                       calendar, bdc, dc,
                                       datum.rate/100.0,
                                       ii, observationLag,
-                                      CPI::AsIndex);
+                                      interpolation);
         nzcis.setPricingEngine(engine);
 
         BOOST_CHECK_MESSAGE(std::fabs(nzcis.NPV()) < eps,
@@ -418,7 +422,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructure) {
                                             calendar, bdc, dc,
                                             datum.rate/100.0 + basisPoint,
                                             ii, observationLag,
-                                            CPI::AsIndex);
+                                            interpolation);
         nzcisBumped.setPricingEngine(engine);
 
         const Real expected = nzcisBumped.legNPV(0) - nzcis.legNPV(0);
@@ -444,7 +448,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructure) {
     Date bd = hz->baseDate();
     Real bf = ii->fixing(bd);
     for (const auto& d : testIndex) {
-        Real z = hz->zeroRate(d, Period(0, Days));
+        Real z = hz->zeroRate(d);
         Real t = hz->dayCounter().yearFraction(bd, inflationPeriod(d, ii->frequency()).first);
         Real calc = bf * std::pow(1+z, t);
         if (t<=0)
@@ -491,7 +495,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructure) {
                                       calendar, bdc, dc,
                                       datum.rate/100.0,
                                       ii, observationLag,
-                                      CPI::AsIndex);
+                                      interpolation);
         nzcis.setPricingEngine(engine);
 
         BOOST_CHECK_MESSAGE(std::fabs(nzcis.NPV()) < eps,
@@ -511,6 +515,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructureLazyBaseDate) {
     Calendar calendar = UnitedKingdom();
     BusinessDayConvention bdc = ModifiedFollowing;
     Period observationLag = Period(3, Months);
+    CPI::InterpolationType interpolation = CPI::Flat;
     DayCounter dc = Thirty360(Thirty360::BondBasis);
     Frequency frequency = Monthly;
     Date evaluationDate(13, August, 2007);
@@ -544,7 +549,7 @@ BOOST_AUTO_TEST_CASE(testZeroTermStructureLazyBaseDate) {
         quotes.push_back(ext::make_shared<SimpleQuote>());
         helpers.push_back(ext::make_shared<ZeroCouponInflationSwapHelper>(
             Handle<Quote>(quotes.back()), observationLag, datum.date, calendar, bdc, dc,
-            ii, CPI::AsIndex));
+            ii, interpolation));
     }
 
     // Create a curve that will use lastFixingDate as the baseDate. The fixings
@@ -928,27 +933,8 @@ BOOST_AUTO_TEST_CASE(testInterpolatedZeroTermStructure) {
 BOOST_AUTO_TEST_CASE(testQuotedYYIndex) {
     BOOST_TEST_MESSAGE("Testing quoted year-on-year inflation indices...");
 
-    QL_DEPRECATED_DISABLE_WARNING
-
-    YYEUHICP yyeuhicp(true);
-    if (yyeuhicp.name() != "EU YY_HICP"
-        || yyeuhicp.frequency() != Monthly
-        || yyeuhicp.revised()
-        || !yyeuhicp.interpolated()
-        || yyeuhicp.ratio()
-        || yyeuhicp.availabilityLag() != 1*Months) {
-        BOOST_ERROR("wrong year-on-year EU HICP data ("
-                    << yyeuhicp.name() << ", "
-                    << yyeuhicp.frequency() << ", "
-                    << yyeuhicp.revised() << ", "
-                    << yyeuhicp.interpolated() << ", "
-                    << yyeuhicp.ratio() << ", "
-                    << yyeuhicp.availabilityLag() << ")");
-    }
-
-    QL_DEPRECATED_ENABLE_WARNING
-
     YYUKRPI yyukrpi;
+    QL_DEPRECATED_DISABLE_WARNING
     if (yyukrpi.name() != "UK YY_RPI"
         || yyukrpi.frequency() != Monthly
         || yyukrpi.revised()
@@ -963,6 +949,7 @@ BOOST_AUTO_TEST_CASE(testQuotedYYIndex) {
                     << yyukrpi.ratio() << ", "
                     << yyukrpi.availabilityLag() << ")");
     }
+    QL_DEPRECATED_ENABLE_WARNING
 }
 
 BOOST_AUTO_TEST_CASE(testQuotedYYIndexFutureFixing) {
@@ -970,50 +957,33 @@ BOOST_AUTO_TEST_CASE(testQuotedYYIndexFutureFixing) {
 
     // we create indexes without a term structure, so
     // they won't be able to forecast fixings
-    YYEUHICP quoted_flat;
-
-    QL_DEPRECATED_DISABLE_WARNING
-    YYEUHICP quoted_linear(true);
-    QL_DEPRECATED_ENABLE_WARNING
+    YYEUHICP quoted;
 
     // let's say we're at some point in April 2024...
     Settings::instance().evaluationDate() = {10, April, 2024};
 
     // ..and the last available fixing is February 2024, we don't have March yet
-    quoted_flat.addFixing({1,December,2023}, 100.0);
-    quoted_flat.addFixing({1,January,2024}, 100.1);
-    quoted_flat.addFixing({1,February,2024}, 100.2);
+    quoted.addFixing({1,December,2023}, 100.0);
+    quoted.addFixing({1,January,2024}, 100.1);
+    quoted.addFixing({1,February,2024}, 100.2);
 
-    BOOST_CHECK_EQUAL(quoted_flat.lastFixingDate(), Date(1,February,2024));
-    BOOST_CHECK_EQUAL(quoted_linear.lastFixingDate(), Date(1,February,2024));
+    BOOST_CHECK_EQUAL(quoted.lastFixingDate(), Date(1,February,2024));
 
-    // mid-January fixing: ok for both flat and interpolated
-    BOOST_CHECK_NO_THROW(quoted_flat.fixing({15,January,2024}));
-    BOOST_CHECK_NO_THROW(quoted_linear.fixing({15,January,2024}));
+    // mid-January fixing: ok
+    BOOST_CHECK_NO_THROW(quoted.fixing({15,January,2024}));
 
-    // mid-February fixing: ok for flat, interpolated needs March
-    BOOST_CHECK_NO_THROW(quoted_flat.fixing({15,February,2024}));
-    BOOST_CHECK_EXCEPTION(quoted_linear.fixing({15,February,2024}), Error,
-                          ExpectedErrorMessage("empty Handle"));
+    // mid-February fixing: ok too
+    BOOST_CHECK_NO_THROW(quoted.fixing({15,February,2024}));
 
-    // but February 1st works (special case, March would have null
-    // weight in the interpolation)
-    BOOST_CHECK_NO_THROW(quoted_linear.fixing({1,February,2024}));
+    // still ok after March is published:
+    quoted.addFixing({1,March,2024}, 100.3);
 
-    // both ok after March is published:
-    quoted_flat.addFixing({1,March,2024}, 100.3);
+    BOOST_CHECK_EQUAL(quoted.lastFixingDate(), Date(1,March,2024));
+    BOOST_CHECK_NO_THROW(quoted.fixing({15,February,2024}));
 
-    BOOST_CHECK_EQUAL(quoted_flat.lastFixingDate(), Date(1,March,2024));
-    BOOST_CHECK_EQUAL(quoted_linear.lastFixingDate(), Date(1,March,2024));
-
-    BOOST_CHECK_NO_THROW(quoted_flat.fixing({15,February,2024}));
-    BOOST_CHECK_NO_THROW(quoted_linear.fixing({15,February,2024}));
-
-    // April can't be available now, both fail even if it's stored:
-    quoted_flat.addFixing({1,April,2024}, 100.4);
-    BOOST_CHECK_EXCEPTION(quoted_flat.fixing({1,April,2024}), Error,
-                          ExpectedErrorMessage("empty Handle"));
-    BOOST_CHECK_EXCEPTION(quoted_linear.fixing({1,April,2024}), Error,
+    // April can't be available now, fail even if it's stored:
+    quoted.addFixing({1,April,2024}, 100.4);
+    BOOST_CHECK_EXCEPTION(quoted.fixing({1,April,2024}), Error,
                           ExpectedErrorMessage("empty Handle"));
 }
 
@@ -1023,25 +993,8 @@ BOOST_AUTO_TEST_CASE(testRatioYYIndex) {
     auto euhicp = ext::make_shared<EUHICP>();
     auto ukrpi = ext::make_shared<UKRPI>();
 
-    QL_DEPRECATED_DISABLE_WARNING
-    YoYInflationIndex yyeuhicpr(euhicp, true);
-    QL_DEPRECATED_ENABLE_WARNING
-    if (yyeuhicpr.name() != "EU YYR_HICP"
-        || yyeuhicpr.frequency() != Monthly
-        || yyeuhicpr.revised()
-        || !yyeuhicpr.interpolated()
-        || !yyeuhicpr.ratio()
-        || yyeuhicpr.availabilityLag() != 1*Months) {
-        BOOST_ERROR("wrong year-on-year EU HICPr data ("
-                    << yyeuhicpr.name() << ", "
-                    << yyeuhicpr.frequency() << ", "
-                    << yyeuhicpr.revised() << ", "
-                    << yyeuhicpr.interpolated() << ", "
-                    << yyeuhicpr.ratio() << ", "
-                    << yyeuhicpr.availabilityLag() << ")");
-    }
-
     YoYInflationIndex yyukrpir(ukrpi);
+    QL_DEPRECATED_DISABLE_WARNING
     if (yyukrpir.name() != "UK YYR_RPI"
         || yyukrpir.frequency() != Monthly
         || yyukrpir.revised()
@@ -1056,7 +1009,7 @@ BOOST_AUTO_TEST_CASE(testRatioYYIndex) {
                     << yyukrpir.ratio() << ", "
                     << yyukrpir.availabilityLag() << ")");
     }
-
+    QL_DEPRECATED_ENABLE_WARNING
 
     // Retrieval test.
     //----------------
@@ -1085,11 +1038,6 @@ BOOST_AUTO_TEST_CASE(testRatioYYIndex) {
     }
 
     auto iir = ext::make_shared<YoYInflationIndex>(ukrpi);
-    QL_DEPRECATED_DISABLE_WARNING
-    // NOLINTNEXTLINE(modernize-make-shared)
-    auto iirYES = ext::shared_ptr<YoYInflationIndex>(
-                                          new YoYInflationIndex(ukrpi, true));
-    QL_DEPRECATED_ENABLE_WARNING
 
     Date todayMinusLag = evaluationDate - iir->availabilityLag();
     std::pair<Date,Date> lim = inflationPeriod(todayMinusLag, iir->frequency());
@@ -1103,8 +1051,6 @@ BOOST_AUTO_TEST_CASE(testRatioYYIndex) {
     for (Size i=13; i<rpiSchedule.size();i++) {
         std::pair<Date,Date> lim = inflationPeriod(rpiSchedule[i],
                                                    iir->frequency());
-        std::pair<Date,Date> limBef = inflationPeriod(rpiSchedule[i-12],
-                                                      iir->frequency());
         for (Date d=lim.first; d<=lim.second; d++) {
             if (d < todayMinusLag) {
                 Rate expected = fixData[i]/fixData[i-12] - 1.0;
@@ -1114,28 +1060,6 @@ BOOST_AUTO_TEST_CASE(testRatioYYIndex) {
                                     << calculated
                                     << ", should be "
                                     << expected);
-
-                Real dp= lim.second + 1- lim.first;
-                Real dpBef=limBef.second + 1 - limBef.first;
-                Real dl = d-lim.first;
-                // potentially does not work on 29th Feb
-                Real dlBef = NullCalendar().advance(d, -1*Years, ModifiedFollowing)
-                -limBef.first;
-
-                Real linearNow = fixData[i] + (fixData[i+1]-fixData[i])*dl/dp;
-                Real linearBef = fixData[i-12] + (fixData[i+1-12]-fixData[i-12])*dlBef/dpBef;
-                Rate expectedYES = linearNow / linearBef - 1.0;
-                Rate calculatedYES = iirYES->fixing(d);
-                BOOST_CHECK_MESSAGE(fabs(expectedYES-calculatedYES)<eps,
-                                    "Error in interpolated fixings: expect "<<expectedYES
-                                    <<" see " << calculatedYES
-                                    <<" flat " << calculated
-                                    <<", data: "<< fixData[i-12] <<", "<< fixData[i+1-12]
-                                    <<", "<<    fixData[i] <<", "<< fixData[i+1]
-                                    <<", fac: "<< dp <<", "<< dl
-                                    <<", "<< dpBef <<", "<< dlBef
-                                    <<", to: "<<linearNow<<", "<<linearBef
-                                    );
             }
         }
     }
@@ -1147,10 +1071,7 @@ BOOST_AUTO_TEST_CASE(testRatioYYIndexFutureFixing) {
     // we create indexes without a term structure, so
     // they won't be able to forecast fixings
     auto euhicp = ext::make_shared<EUHICP>();
-    YoYInflationIndex ratio_flat(euhicp);
-    QL_DEPRECATED_DISABLE_WARNING
-    YoYInflationIndex ratio_linear(euhicp, true);
-    QL_DEPRECATED_ENABLE_WARNING
+    YoYInflationIndex ratio(euhicp);
 
     // let's say we're at some point in April 2024...
     Settings::instance().evaluationDate() = {10, April, 2024};
@@ -1165,36 +1086,23 @@ BOOST_AUTO_TEST_CASE(testRatioYYIndexFutureFixing) {
     euhicp->addFixing({1,January,2024}, 100.1);
     euhicp->addFixing({1,February,2024}, 100.2);
 
-    BOOST_CHECK_EQUAL(ratio_flat.lastFixingDate(), Date(1,February,2024));
-    BOOST_CHECK_EQUAL(ratio_linear.lastFixingDate(), Date(1,February,2024));
+    BOOST_CHECK_EQUAL(ratio.lastFixingDate(), Date(1,February,2024));
 
-    // mid-January fixing: ok for both flat and interpolated
-    BOOST_CHECK_NO_THROW(ratio_flat.fixing({15,January,2024}));
-    BOOST_CHECK_NO_THROW(ratio_linear.fixing({15,January,2024}));
+    // mid-January fixing: ok
+    BOOST_CHECK_NO_THROW(ratio.fixing({15,January,2024}));
 
-    // mid-February fixing: ok for flat, interpolated needs March
-    BOOST_CHECK_NO_THROW(ratio_flat.fixing({15,February,2024}));
-    BOOST_CHECK_EXCEPTION(ratio_linear.fixing({15,February,2024}), Error,
-                          ExpectedErrorMessage("empty Handle"));
+    // mid-February fixing: also ok
+    BOOST_CHECK_NO_THROW(ratio.fixing({15,February,2024}));
 
-    // but February 1st works (special case, March would have null
-    // weight in the interpolation)
-    BOOST_CHECK_NO_THROW(ratio_linear.fixing({1,February,2024}));
-
-    // both ok after March is published:
+    // ok after March is published:
     euhicp->addFixing({1,March,2024}, 100.3);
 
-    BOOST_CHECK_EQUAL(ratio_flat.lastFixingDate(), Date(1,March,2024));
-    BOOST_CHECK_EQUAL(ratio_linear.lastFixingDate(), Date(1,March,2024));
+    BOOST_CHECK_EQUAL(ratio.lastFixingDate(), Date(1,March,2024));
+    BOOST_CHECK_NO_THROW(ratio.fixing({15,February,2024}));
 
-    BOOST_CHECK_NO_THROW(ratio_flat.fixing({15,February,2024}));
-    BOOST_CHECK_NO_THROW(ratio_linear.fixing({15,February,2024}));
-
-    // April can't be available now, both fail even if it's stored:
+    // April can't be available now, fail even if it's stored:
     euhicp->addFixing({1,April,2024}, 100.4);
-    BOOST_CHECK_EXCEPTION(ratio_flat.fixing({1,April,2024}), Error,
-                          ExpectedErrorMessage("empty Handle"));
-    BOOST_CHECK_EXCEPTION(ratio_linear.fixing({1,April,2024}), Error,
+    BOOST_CHECK_EXCEPTION(ratio.fixing({1,April,2024}), Error,
                           ExpectedErrorMessage("empty Handle"));
 }
 
@@ -1254,11 +1162,12 @@ BOOST_AUTO_TEST_CASE(testYYTermStructure) {
 
     Period observationLag = Period(2,Months);
     DayCounter dc = Thirty360(Thirty360::BondBasis);
+    CPI::InterpolationType interpolation = CPI::Flat;
 
     // now build the helpers ...
     auto makeHelper = [&](const Handle<Quote>& quote, const Date& maturity) {
         return ext::make_shared<YearOnYearInflationSwapHelper>(
-            quote, observationLag, maturity, calendar, bdc, dc, iir, CPI::AsIndex,
+            quote, observationLag, maturity, calendar, bdc, dc, iir, interpolation,
             Handle<YieldTermStructure>(nominalTS));
     };
     auto helpers = makeHelpers<YoYInflationTermStructure>(yyData, makeHelper);
@@ -1305,7 +1214,7 @@ BOOST_AUTO_TEST_CASE(testYYTermStructure) {
                                      yoySchedule,
                                      iir,
                                      observationLag,
-                                     CPI::Flat,
+                                     interpolation,
                                      0.0,        //spread on index
                                      dc,
                                      UnitedKingdom());
@@ -1342,7 +1251,7 @@ BOOST_AUTO_TEST_CASE(testYYTermStructure) {
                                      yoySchedule,
                                      iir,
                                      observationLag,
-                                     CPI::Flat,
+                                     interpolation,
                                      0.0,        //spread on index
                                      dc,
                                      UnitedKingdom());
@@ -1498,6 +1407,7 @@ BOOST_AUTO_TEST_CASE(testCpiLinearInterpolation) {
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 }
 
+QL_DEPRECATED_DISABLE_WARNING
 BOOST_AUTO_TEST_CASE(testCpiAsIndexInterpolation) {
     BOOST_TEST_MESSAGE("Testing CPI as-index interpolation for inflation fixings...");
 
@@ -1532,40 +1442,28 @@ BOOST_AUTO_TEST_CASE(testCpiAsIndexInterpolation) {
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 }
+QL_DEPRECATED_ENABLE_WARNING
 
 BOOST_AUTO_TEST_CASE(testCpiYoYQuotedFlatInterpolation) {
     BOOST_TEST_MESSAGE("Testing CPI flat interpolation for year-on-year quoted rates...");
 
     Settings::instance().evaluationDate() = Date(10, February, 2022);
 
-    auto testIndex1 = ext::make_shared<YYUKRPI>();
-    QL_DEPRECATED_DISABLE_WARNING
-    // NOLINTNEXTLINE(modernize-make-shared)
-    auto testIndex2 = ext::shared_ptr<YYUKRPI>(new YYUKRPI(true));
-    QL_DEPRECATED_ENABLE_WARNING
+    auto testIndex = ext::make_shared<YYUKRPI>();
 
-    testIndex1->addFixing(Date(1, November, 2020), 0.02935);
-    testIndex1->addFixing(Date(1, December, 2020), 0.02954);
-    testIndex1->addFixing(Date(1, January,  2021), 0.02946);
-    testIndex1->addFixing(Date(1, February, 2021), 0.02960);
-    testIndex1->addFixing(Date(1, March,    2021), 0.02969);
+    testIndex->addFixing(Date(1, November, 2020), 0.02935);
+    testIndex->addFixing(Date(1, December, 2020), 0.02954);
+    testIndex->addFixing(Date(1, January,  2021), 0.02946);
+    testIndex->addFixing(Date(1, February, 2021), 0.02960);
+    testIndex->addFixing(Date(1, March,    2021), 0.02969);
 
-    Real calculated = CPI::laggedYoYRate(testIndex1, Date(10, February, 2021), 3 * Months, CPI::Flat);
+    Real calculated = CPI::laggedYoYRate(testIndex, Date(10, February, 2021), 3 * Months, CPI::Flat);
     Real expected = 0.02935;
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 
-    // same expected flat fixing for interpolated and not interpolated
-    calculated = CPI::laggedYoYRate(testIndex2, Date(10, February, 2021), 3 * Months, CPI::Flat);
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex1, Date(25, June, 2021), 3 * Months, CPI::Flat);
+    calculated = CPI::laggedYoYRate(testIndex, Date(25, June, 2021), 3 * Months, CPI::Flat);
     expected = 0.02969;
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex2, Date(25, June, 2021), 3 * Months, CPI::Flat);
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 }
@@ -1575,52 +1473,32 @@ BOOST_AUTO_TEST_CASE(testCpiYoYQuotedLinearInterpolation) {
 
     Settings::instance().evaluationDate() = Date(10, February, 2022);
 
-    auto testIndex1 = ext::make_shared<YYUKRPI>();
-    QL_DEPRECATED_DISABLE_WARNING
-    // NOLINTNEXTLINE(modernize-make-shared)
-    auto testIndex2 = ext::shared_ptr<YYUKRPI>(new YYUKRPI(true));
-    QL_DEPRECATED_ENABLE_WARNING
+    auto testIndex = ext::make_shared<YYUKRPI>();
 
-    testIndex1->addFixing(Date(1, November, 2020), 0.02935);
-    testIndex1->addFixing(Date(1, December, 2020), 0.02954);
-    testIndex1->addFixing(Date(1, January,  2021), 0.02946);
-    testIndex1->addFixing(Date(1, February, 2021), 0.02960);
-    testIndex1->addFixing(Date(1, March,    2021), 0.02969);
+    testIndex->addFixing(Date(1, November, 2020), 0.02935);
+    testIndex->addFixing(Date(1, December, 2020), 0.02954);
+    testIndex->addFixing(Date(1, January,  2021), 0.02946);
+    testIndex->addFixing(Date(1, February, 2021), 0.02960);
+    testIndex->addFixing(Date(1, March,    2021), 0.02969);
 
-    Real calculated = CPI::laggedYoYRate(testIndex1, Date(10, February, 2021), 3 * Months, CPI::Linear);
+    Real calculated = CPI::laggedYoYRate(testIndex, Date(10, February, 2021), 3 * Months, CPI::Linear);
     Real expected = 0.02935 * (19/28.0) + 0.02954 * (9/28.0);
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 
-    calculated = CPI::laggedYoYRate(testIndex2, Date(10, February, 2021), 3 * Months, CPI::Linear);
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex1, Date(12, May, 2021), 3 * Months, CPI::Linear);
+    calculated = CPI::laggedYoYRate(testIndex, Date(12, May, 2021), 3 * Months, CPI::Linear);
     expected = 0.02960 * (20/31.0) + 0.02969 * (11/31.0);
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex2, Date(12, May, 2021), 3 * Months, CPI::Linear);
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 
     // this would require April's fixing
     BOOST_CHECK_EXCEPTION(
-        CPI::laggedYoYRate(testIndex1, Date(25, June, 2021), 3 * Months, CPI::Linear),
-        Error, ExpectedErrorMessage("Missing UK YY_RPI fixing"));
-
-    BOOST_CHECK_EXCEPTION(
-        CPI::laggedYoYRate(testIndex2, Date(25, June, 2021), 3 * Months, CPI::Linear),
+        CPI::laggedYoYRate(testIndex, Date(25, June, 2021), 3 * Months, CPI::Linear),
         Error, ExpectedErrorMessage("Missing UK YY_RPI fixing"));
 
     // however, this is a special case
-    calculated = CPI::laggedYoYRate(testIndex1, Date(1, June, 2021), 3 * Months, CPI::Linear);
+    calculated = CPI::laggedYoYRate(testIndex, Date(1, June, 2021), 3 * Months, CPI::Linear);
     expected = 0.02969;
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex2, Date(1, June, 2021), 3 * Months, CPI::Linear);
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 }
@@ -1634,11 +1512,6 @@ BOOST_AUTO_TEST_CASE(testCpiYoYRatioFlatInterpolation) {
     auto underlying = ext::make_shared<UKRPI>();
 
     auto testIndex1 = ext::make_shared<YoYInflationIndex>(underlying);
-    QL_DEPRECATED_DISABLE_WARNING
-    // NOLINTNEXTLINE(modernize-make-shared)
-    auto testIndex2 = ext::shared_ptr<YoYInflationIndex>(
-                                     new YoYInflationIndex(underlying, true));
-    QL_DEPRECATED_ENABLE_WARNING
 
     underlying->addFixing(Date(1, November, 2019), 291.0);
     underlying->addFixing(Date(1, December, 2019), 291.9);
@@ -1657,17 +1530,8 @@ BOOST_AUTO_TEST_CASE(testCpiYoYRatioFlatInterpolation) {
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 
-    // same expected flat fixing for interpolated and not interpolated
-    calculated = CPI::laggedYoYRate(testIndex2, Date(10, February, 2021), 3 * Months, CPI::Flat);
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
     calculated = CPI::laggedYoYRate(testIndex1, Date(25, June, 2021), 3 * Months, CPI::Flat);
     expected = 296.9/292.6 - 1;
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex2, Date(25, June, 2021), 3 * Months, CPI::Flat);
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 }
@@ -1680,11 +1544,6 @@ BOOST_AUTO_TEST_CASE(testCpiYoYRatioLinearInterpolation) {
     auto underlying = ext::make_shared<UKRPI>();
 
     auto testIndex1 = ext::make_shared<YoYInflationIndex>(underlying);
-    QL_DEPRECATED_DISABLE_WARNING
-    // NOLINTNEXTLINE(modernize-make-shared)
-    auto testIndex2 = ext::shared_ptr<YoYInflationIndex>(
-                                     new YoYInflationIndex(underlying, true));
-    QL_DEPRECATED_ENABLE_WARNING
 
     underlying->addFixing(Date(1, November, 2019), 291.0);
     underlying->addFixing(Date(1, December, 2019), 291.9);
@@ -1704,16 +1563,8 @@ BOOST_AUTO_TEST_CASE(testCpiYoYRatioLinearInterpolation) {
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 
-    calculated = CPI::laggedYoYRate(testIndex2, Date(10, February, 2021), 3 * Months, CPI::Linear);
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
     calculated = CPI::laggedYoYRate(testIndex1, Date(12, May, 2021), 3 * Months, CPI::Linear);
     expected = (296.0 * (20/31.0) + 296.9 * (11/31.0)) / (292.0 * (20/31.0) + 292.6 * (11/31.0)) - 1;
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex2, Date(12, May, 2021), 3 * Months, CPI::Linear);
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 
@@ -1722,17 +1573,9 @@ BOOST_AUTO_TEST_CASE(testCpiYoYRatioLinearInterpolation) {
         CPI::laggedYoYRate(testIndex1, Date(25, June, 2021), 3 * Months, CPI::Linear),
         Error, ExpectedErrorMessage("Missing UK RPI fixing"));
 
-    BOOST_CHECK_EXCEPTION(
-        CPI::laggedYoYRate(testIndex2, Date(25, June, 2021), 3 * Months, CPI::Linear),
-        Error, ExpectedErrorMessage("Missing UK RPI fixing"));
-
     // however, this is a special case
     calculated = CPI::laggedYoYRate(testIndex1, Date(1, June, 2021), 3 * Months, CPI::Linear);
     expected = 296.9/292.6 - 1;
-
-    QL_CHECK_CLOSE(calculated, expected, 1e-8);
-
-    calculated = CPI::laggedYoYRate(testIndex2, Date(1, June, 2021), 3 * Months, CPI::Linear);
 
     QL_CHECK_CLOSE(calculated, expected, 1e-8);
 }
@@ -1825,10 +1668,11 @@ BOOST_AUTO_TEST_CASE(testExtrapolationRegression) {
     Period observationLag = Period(3, Months);
     DayCounter dc = Thirty360(Thirty360::BondBasis);
     Frequency frequency = Monthly;
+    CPI::InterpolationType interpolation = CPI::Flat;
 
     auto makeHelper = [&](const Handle<Quote>& quote, const Date& maturity) {
         return ext::make_shared<ZeroCouponInflationSwapHelper>(
-            quote, observationLag, maturity, calendar, bdc, dc, rpi, CPI::AsIndex);
+            quote, observationLag, maturity, calendar, bdc, dc, rpi, interpolation);
     };
     auto helpers = makeHelpers<ZeroInflationTermStructure>(zcData, makeHelper);
 
@@ -1866,7 +1710,7 @@ BOOST_AUTO_TEST_CASE(testExtrapolationRegression) {
     // now build the helpers ...
     auto makeYoYHelper = [&](const Handle<Quote>& quote, const Date& maturity) {
         return ext::make_shared<YearOnYearInflationSwapHelper>(
-            quote, observationLag, maturity, calendar, bdc, dc, yoy, CPI::AsIndex,
+            quote, observationLag, maturity, calendar, bdc, dc, yoy, interpolation,
             Handle<YieldTermStructure>(nominalTS));
     };
     auto yoyHelpers = makeHelpers<YoYInflationTermStructure>(yyData, makeYoYHelper);
@@ -1879,6 +1723,440 @@ BOOST_AUTO_TEST_CASE(testExtrapolationRegression) {
     pYYTS->enableExtrapolation();
 
     BOOST_CHECK_NO_THROW(pYYTS->yoyRate(10.0));
+}
+
+BOOST_AUTO_TEST_CASE(testUsCpiLinearBootstrapAtMonthStart) {
+
+    BOOST_TEST_MESSAGE(
+        "Testing US CPI bootstrap with CPI::Linear across evaluation dates...");
+
+    /* US CPI zero-coupon inflation swaps use daily linear interpolation
+     * between monthly index values (matching TIPS conventions).
+     * With sub-annual helpers, the pillar assignment must account for
+     * interpolation weight to avoid "root not bracketed" failures
+     * at month-start.  See https://github.com/lballabio/QuantLib/issues/2454
+     *
+     * Conventions: T+2 settlement (US GovernmentBond calendar),
+     * 3-month observation lag, unadjusted maturity dates. */
+
+    struct SwapData { Period tenor; Rate rate; };
+    std::vector<SwapData> swapData = {
+        {3*Months,   0.0285}, {4*Months,   0.0268},
+        {5*Months,   0.0252}, {6*Months,   0.0241},
+        {7*Months,   0.0237}, {8*Months,   0.0232},
+        {9*Months,   0.0229}, {10*Months,  0.0225},
+        {11*Months,  0.0223}, {1*Years,    0.0221},
+        {18*Months,  0.0230}, {2*Years,    0.0238},
+        {5*Years,    0.0245}, {10*Years,   0.0252},
+        {30*Years,   0.0260},
+    };
+
+    Calendar calendar = UnitedStates(UnitedStates::GovernmentBond);
+    Period observationLag(3, Months);
+    DayCounter dc = Thirty360(Thirty360::BondBasis);
+    Date baseDate(1, November, 2025);
+
+    // US CPI-U (NSA) monthly fixings, approximate 2025 values
+    std::vector<std::pair<Date, Real>> fixings = {
+        {Date(1,January,2025), 309.685}, {Date(1,February,2025), 310.326},
+        {Date(1,March,2025), 311.054},   {Date(1,April,2025), 311.538},
+        {Date(1,May,2025), 311.862},     {Date(1,June,2025), 312.104},
+        {Date(1,July,2025), 312.332},    {Date(1,August,2025), 312.558},
+        {Date(1,September,2025), 312.816},{Date(1,October,2025), 313.025},
+        {Date(1,November,2025), 313.314},{Date(1,December,2025), 313.580}
+    };
+
+    Size failureCount = 0;
+
+    for (Date evalDate(1, February, 2026);
+         evalDate <= Date(28, February, 2026); evalDate++) {
+
+        Settings::instance().evaluationDate() = evalDate;
+
+        RelinkableHandle<ZeroInflationTermStructure> hz;
+        auto index = ext::make_shared<USCPI>(hz);
+
+        for (auto& [d, v] : fixings)
+            index->addFixing(d, v);
+
+        std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure>>> helpers;
+        Date startDate = calendar.advance(evalDate, 2*Days);
+        for (auto& s : swapData) {
+            Date endDate = startDate + s.tenor;
+            helpers.push_back(ext::make_shared<ZeroCouponInflationSwapHelper>(
+                Handle<Quote>(ext::make_shared<SimpleQuote>(s.rate)),
+                observationLag, startDate, endDate, calendar, ModifiedFollowing,
+                dc, index, CPI::Linear));
+        }
+
+        try {
+            auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
+                evalDate, baseDate, Monthly, dc, helpers);
+            hz.linkTo(curve);
+            curve->zeroRate(evalDate + 1*Years);
+        } catch (const std::exception&) {
+            failureCount++;
+        }
+
+        index->clearFixings();
+    }
+
+    BOOST_CHECK_EQUAL(failureCount, (Size)0);
+}
+
+BOOST_AUTO_TEST_CASE(testEuHicpFlatBootstrapAtMonthStart) {
+
+    BOOST_TEST_MESSAGE(
+        "Testing EU HICP bootstrap with CPI::Flat across evaluation dates...");
+
+    /* EUR HICP zero-coupon inflation swaps use flat (monthly)
+     * observation — no daily interpolation between monthly fixings.
+     * With CPI::Flat the pillar is always the left node and the
+     * helper has full sensitivity, so month-start is not an issue.
+     * This test confirms no regression with the pillar assignment
+     * changes and that GlobalBootstrap works for EUR conventions.
+     *
+     * Conventions: T+2 settlement (TARGET calendar),
+     * 3-month observation lag, unadjusted maturity dates. */
+
+    struct SwapData { Period tenor; Rate rate; };
+    std::vector<SwapData> swapData = {
+        {1*Years,    0.0182}, {2*Years,    0.0178},
+        {3*Years,    0.0185}, {4*Years,    0.0188},
+        {5*Years,    0.0190}, {7*Years,    0.0195},
+        {10*Years,   0.0201}, {15*Years,   0.0210},
+        {20*Years,   0.0218}, {30*Years,   0.0229},
+    };
+
+    Calendar calendar = TARGET();
+    Period observationLag(3, Months);
+    DayCounter dc = Thirty360(Thirty360::BondBasis);
+    Date baseDate(1, December, 2025);
+
+    // EU HICP ex-tobacco monthly fixings, approximate 2025 values
+    std::vector<std::pair<Date, Real>> fixings = {
+        {Date(1,January,2025), 126.42}, {Date(1,February,2025), 126.81},
+        {Date(1,March,2025), 127.19}, {Date(1,April,2025), 127.51},
+        {Date(1,May,2025), 127.62}, {Date(1,June,2025), 127.85},
+        {Date(1,July,2025), 127.23}, {Date(1,August,2025), 127.58},
+        {Date(1,September,2025), 128.07}, {Date(1,October,2025), 128.41},
+        {Date(1,November,2025), 128.62}, {Date(1,December,2025), 128.89}
+    };
+
+    Size failureCount = 0;
+    Size globalFailureCount = 0;
+
+    for (Date evalDate(1, February, 2026);
+         evalDate <= Date(28, February, 2026); evalDate++) {
+
+        Settings::instance().evaluationDate() = evalDate;
+
+        RelinkableHandle<ZeroInflationTermStructure> hz;
+        auto index = ext::make_shared<EUHICPXT>(hz);
+
+        for (auto& [d, v] : fixings)
+            index->addFixing(d, v);
+
+        std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure>>> helpers;
+        Date startDate = calendar.advance(evalDate, 2*Days);
+        for (auto& s : swapData) {
+            Date endDate = startDate + s.tenor;
+            helpers.push_back(ext::make_shared<ZeroCouponInflationSwapHelper>(
+                Handle<Quote>(ext::make_shared<SimpleQuote>(s.rate)),
+                observationLag, startDate, endDate, calendar, ModifiedFollowing,
+                dc, index, CPI::Flat));
+        }
+
+        // IterativeBootstrap
+        try {
+            auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
+                evalDate, baseDate, Monthly, dc, helpers);
+            hz.linkTo(curve);
+            curve->zeroRate(evalDate + 1*Years);
+        } catch (const std::exception&) {
+            failureCount++;
+        }
+
+        hz.linkTo(ext::shared_ptr<ZeroInflationTermStructure>());
+
+        // GlobalBootstrap
+        try {
+            auto curve = ext::make_shared<
+                PiecewiseZeroInflationCurve<Linear, GlobalBootstrap>>(
+                evalDate, baseDate, Monthly, dc, helpers);
+            hz.linkTo(curve);
+            curve->zeroRate(evalDate + 1*Years);
+        } catch (const std::exception&) {
+            globalFailureCount++;
+        }
+
+        index->clearFixings();
+    }
+
+    BOOST_CHECK_EQUAL(failureCount, (Size)0);
+    BOOST_CHECK_EQUAL(globalFailureCount, (Size)0);
+}
+
+BOOST_AUTO_TEST_CASE(testUkRpiFlatBootstrapAtMonthStart) {
+
+    BOOST_TEST_MESSAGE(
+        "Testing UK RPI bootstrap with CPI::Flat across evaluation dates...");
+
+    /* UK RPI zero-coupon inflation swaps use flat (monthly)
+     * observation with a 2-month observation lag (shorter than the
+     * 3-month lag used for EUR and US).  UK market convention is
+     * T+0 settlement on the London calendar.
+     *
+     * This test confirms bootstrap stability across the month with
+     * UK-specific conventions.  As with EUR, CPI::Flat avoids the
+     * pillar sensitivity issue, but this exercises the different lag
+     * and settlement. */
+
+    struct SwapData { Period tenor; Rate rate; };
+    std::vector<SwapData> swapData = {
+        {1*Years,    0.0335}, {2*Years,    0.0328},
+        {3*Years,    0.0322}, {5*Years,    0.0318},
+        {7*Years,    0.0316}, {10*Years,   0.0315},
+        {15*Years,   0.0320}, {20*Years,   0.0325},
+        {30*Years,   0.0330}, {50*Years,   0.0332},
+    };
+
+    Calendar calendar = UnitedKingdom();
+    Period observationLag(2, Months);
+    DayCounter dc = Thirty360(Thirty360::BondBasis);
+    Date baseDate(1, December, 2025);
+
+    // UK RPI monthly fixings, approximate 2025 values
+    std::vector<std::pair<Date, Real>> fixings = {
+        {Date(1,January,2025), 378.2}, {Date(1,February,2025), 379.1},
+        {Date(1,March,2025), 380.3},   {Date(1,April,2025), 381.5},
+        {Date(1,May,2025), 382.0},     {Date(1,June,2025), 382.4},
+        {Date(1,July,2025), 381.8},    {Date(1,August,2025), 382.1},
+        {Date(1,September,2025), 383.0},{Date(1,October,2025), 383.5},
+        {Date(1,November,2025), 383.9},{Date(1,December,2025), 384.2}
+    };
+
+    Size failureCount = 0;
+    Size globalFailureCount = 0;
+
+    for (Date evalDate(1, February, 2026);
+         evalDate <= Date(28, February, 2026); evalDate++) {
+
+        Settings::instance().evaluationDate() = evalDate;
+
+        RelinkableHandle<ZeroInflationTermStructure> hz;
+        auto index = ext::make_shared<UKRPI>(hz);
+
+        for (auto& [d, v] : fixings)
+            index->addFixing(d, v);
+
+        std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure>>> helpers;
+        // UK RPI: T+0 settlement
+        Date startDate = evalDate;
+        for (auto& s : swapData) {
+            Date endDate = startDate + s.tenor;
+            helpers.push_back(ext::make_shared<ZeroCouponInflationSwapHelper>(
+                Handle<Quote>(ext::make_shared<SimpleQuote>(s.rate)),
+                observationLag, startDate, endDate, calendar, ModifiedFollowing,
+                dc, index, CPI::Flat));
+        }
+
+        // IterativeBootstrap
+        try {
+            auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
+                evalDate, baseDate, Monthly, dc, helpers);
+            hz.linkTo(curve);
+            curve->zeroRate(evalDate + 1*Years);
+        } catch (const std::exception&) {
+            failureCount++;
+        }
+
+        hz.linkTo(ext::shared_ptr<ZeroInflationTermStructure>());
+
+        // GlobalBootstrap
+        try {
+            auto curve = ext::make_shared<
+                PiecewiseZeroInflationCurve<Linear, GlobalBootstrap>>(
+                evalDate, baseDate, Monthly, dc, helpers);
+            hz.linkTo(curve);
+            curve->zeroRate(evalDate + 1*Years);
+        } catch (const std::exception&) {
+            globalFailureCount++;
+        }
+
+        index->clearFixings();
+    }
+
+    BOOST_CHECK_EQUAL(failureCount, (Size)0);
+    BOOST_CHECK_EQUAL(globalFailureCount, (Size)0);
+}
+
+BOOST_AUTO_TEST_CASE(testUsCpiLinearGlobalBootstrapAtMonthStart) {
+
+    BOOST_TEST_MESSAGE(
+        "Testing US CPI bootstrap with GlobalBootstrap across evaluation dates...");
+
+    /* GlobalBootstrap solves all curve nodes simultaneously via
+     * Levenberg-Marquardt.  For CPI::Linear with sub-annual helpers,
+     * this provides additional robustness: if two helpers map to the
+     * same pillar date, GlobalBootstrap deduplicates pillars and
+     * treats both helpers as separate error terms rather than
+     * hard-failing on duplicate pillar dates. */
+
+    struct SwapData { Period tenor; Rate rate; };
+    std::vector<SwapData> swapData = {
+        {3*Months,   0.0285}, {4*Months,   0.0268},
+        {5*Months,   0.0252}, {6*Months,   0.0241},
+        {7*Months,   0.0237}, {8*Months,   0.0232},
+        {9*Months,   0.0229}, {10*Months,  0.0225},
+        {11*Months,  0.0223}, {1*Years,    0.0221},
+        {18*Months,  0.0230}, {2*Years,    0.0238},
+        {5*Years,    0.0245}, {10*Years,   0.0252},
+        {30*Years,   0.0260},
+    };
+
+    Calendar calendar = UnitedStates(UnitedStates::GovernmentBond);
+    Period observationLag(3, Months);
+    DayCounter dc = Thirty360(Thirty360::BondBasis);
+    Date baseDate(1, November, 2025);
+
+    // US CPI-U (NSA) monthly fixings
+    std::vector<std::pair<Date, Real>> fixings = {
+        {Date(1,January,2025), 309.685}, {Date(1,February,2025), 310.326},
+        {Date(1,March,2025), 311.054},   {Date(1,April,2025), 311.538},
+        {Date(1,May,2025), 311.862},     {Date(1,June,2025), 312.104},
+        {Date(1,July,2025), 312.332},    {Date(1,August,2025), 312.558},
+        {Date(1,September,2025), 312.816},{Date(1,October,2025), 313.025},
+        {Date(1,November,2025), 313.314},{Date(1,December,2025), 313.580}
+    };
+
+    Size failureCount = 0;
+
+    for (Date evalDate(1, February, 2026);
+         evalDate <= Date(28, February, 2026); evalDate++) {
+
+        Settings::instance().evaluationDate() = evalDate;
+
+        RelinkableHandle<ZeroInflationTermStructure> hz;
+        auto index = ext::make_shared<USCPI>(hz);
+
+        for (auto& [d, v] : fixings)
+            index->addFixing(d, v);
+
+        std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure>>> helpers;
+        Date startDate = calendar.advance(evalDate, 2*Days);
+        for (auto& s : swapData) {
+            Date endDate = startDate + s.tenor;
+            helpers.push_back(ext::make_shared<ZeroCouponInflationSwapHelper>(
+                Handle<Quote>(ext::make_shared<SimpleQuote>(s.rate)),
+                observationLag, startDate, endDate, calendar, ModifiedFollowing,
+                dc, index, CPI::Linear));
+        }
+
+        try {
+            auto curve = ext::make_shared<
+                PiecewiseZeroInflationCurve<Linear, GlobalBootstrap>>(
+                evalDate, baseDate, Monthly, dc, helpers);
+            hz.linkTo(curve);
+            curve->zeroRate(evalDate + 1*Years);
+        } catch (const std::exception&) {
+            failureCount++;
+        }
+
+        index->clearFixings();
+    }
+
+    BOOST_CHECK_EQUAL(failureCount, (Size)0);
+}
+
+BOOST_AUTO_TEST_CASE(testPillarCollisionWithDifferentMonthLengths) {
+
+    BOOST_TEST_MESSAGE(
+        "Testing CPI::Linear pillar assignment across months of different length...");
+
+    /* With T+0 settlement and sub-annual helpers including a 13-month
+     * tenor, consecutive helpers can mature in months of different
+     * length.  When the maturity day is near mid-month (day 15-16),
+     * the interpolation weight can cross the 0.5 threshold in one
+     * month but not another — e.g. day 16 in February (28 days,
+     * w = 15/28 = 0.536 → RIGHT) vs March (31 days, w = 15/31 =
+     * 0.484 → LEFT).  If pillar assignment used the maturity date,
+     * this would cause two helpers to map to the same pillar,
+     * crashing IterativeBootstrap.
+     *
+     * The fix uses startDate_ (shared across all helpers) for the
+     * weight calculation, so all helpers switch LEFT/RIGHT in sync.
+     *
+     * We loop February and March with T+0 settlement and a 13M
+     * helper.  Without the startDate_ fix, Feb 16 and Mar 16 fail.
+     * See https://github.com/lballabio/QuantLib/issues/2454 */
+
+    struct SwapData { Period tenor; Rate rate; };
+    std::vector<SwapData> swapData = {
+        {3*Months,   0.0285}, {4*Months,   0.0268},
+        {5*Months,   0.0252}, {6*Months,   0.0241},
+        {7*Months,   0.0237}, {8*Months,   0.0232},
+        {9*Months,   0.0229}, {10*Months,  0.0225},
+        {11*Months,  0.0223}, {1*Years,    0.0221},
+        {13*Months,  0.0220},
+        {18*Months,  0.0230}, {2*Years,    0.0238},
+        {5*Years,    0.0245}, {10*Years,   0.0252},
+        {30*Years,   0.0260},
+    };
+
+    Calendar calendar = NullCalendar();
+    Period observationLag(3, Months);
+    DayCounter dc = Thirty360(Thirty360::BondBasis);
+    Date baseDate(1, November, 2025);
+
+    std::vector<std::pair<Date, Real>> fixings = {
+        {Date(1,January,2025), 309.685}, {Date(1,February,2025), 310.326},
+        {Date(1,March,2025), 311.054},   {Date(1,April,2025), 311.538},
+        {Date(1,May,2025), 311.862},     {Date(1,June,2025), 312.104},
+        {Date(1,July,2025), 312.332},    {Date(1,August,2025), 312.558},
+        {Date(1,September,2025), 312.816},{Date(1,October,2025), 313.025},
+        {Date(1,November,2025), 313.314},{Date(1,December,2025), 313.580},
+        {Date(1,January,2026), 314.012}, {Date(1,February,2026), 314.382},
+        {Date(1,March,2026), 314.715},
+    };
+
+    Size failureCount = 0;
+
+    // Loop February and March with T+0 settlement
+    for (Date evalDate(1, February, 2026);
+         evalDate <= Date(31, March, 2026); evalDate++) {
+
+        Settings::instance().evaluationDate() = evalDate;
+
+        RelinkableHandle<ZeroInflationTermStructure> hz;
+        auto index = ext::make_shared<USCPI>(hz);
+
+        for (auto& [d, v] : fixings)
+            index->addFixing(d, v);
+
+        std::vector<ext::shared_ptr<BootstrapHelper<ZeroInflationTermStructure>>> helpers;
+        Date startDate = evalDate;  // T+0 settlement
+        for (auto& s : swapData) {
+            Date endDate = startDate + s.tenor;
+            helpers.push_back(ext::make_shared<ZeroCouponInflationSwapHelper>(
+                Handle<Quote>(ext::make_shared<SimpleQuote>(s.rate)),
+                observationLag, startDate, endDate, calendar, Unadjusted,
+                dc, index, CPI::Linear));
+        }
+
+        try {
+            auto curve = ext::make_shared<PiecewiseZeroInflationCurve<Linear>>(
+                evalDate, baseDate, Monthly, dc, helpers);
+            hz.linkTo(curve);
+            curve->zeroRate(evalDate + 1*Years);
+        } catch (const std::exception&) {
+            failureCount++;
+        }
+
+        index->clearFixings();
+    }
+
+    BOOST_CHECK_EQUAL(failureCount, (Size)0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

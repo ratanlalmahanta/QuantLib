@@ -63,11 +63,10 @@ std::vector<ext::shared_ptr<BootstrapHelper<T> > > makeHelpers(
     std::vector<ext::shared_ptr<BootstrapHelper<T> > > instruments;
     for (Size i=0; i<N; i++) {
         Date maturity = iiData[i].date;
-        Handle<Quote> quote(ext::shared_ptr<Quote>(
-                                new SimpleQuote(iiData[i].rate/100.0)));
+        Handle<Quote> quote(ext::make_shared<SimpleQuote>(iiData[i].rate/100.0));
         auto anInstrument = ext::make_shared<U>(quote, observationLag, maturity,
                                                 calendar, bdc, dc, ii,
-                                                CPI::AsIndex);
+                                                CPI::Flat);
         instruments.push_back(anInstrument);
     }
 
@@ -75,7 +74,7 @@ std::vector<ext::shared_ptr<BootstrapHelper<T> > > makeHelpers(
 }
 
 
-struct CommonVars {
+struct CommonVars { // NOLINT(cppcoreguidelines-special-member-functions)
     // common data
     
     Size length;
@@ -346,8 +345,8 @@ BOOST_AUTO_TEST_CASE(consistency) {
                "failed manual inf leg NPV calc vs pricing engine: " <<
                testInfLegNPV << " vs " << zisV.legNPV(0));
 
-    Real diff = fabs(1-zisV.NPV()/4191660.0);
-    
+    Real diff = fabs(1-zisV.NPV()/4191797.54);
+
     Real max_diff = usingAtParCoupons ? 1e-5 : 3e-5;
 
     QL_REQUIRE(diff<max_diff,
@@ -360,17 +359,18 @@ BOOST_AUTO_TEST_CASE(zciisconsistency) {
     CommonVars common;
 
     Swap::Type ztype = Swap::Payer;
-    Real  nominal = 1000000.0;
+    Real nominal = 1000000.0;
     Date startDate(common.evaluationDate);
     Date endDate(25, November, 2059);
     Calendar cal = UnitedKingdom();
     BusinessDayConvention paymentConvention = ModifiedFollowing;
     DayCounter dummyDC, dc = ActualActual(ActualActual::ISDA);
     Period observationLag(2,Months);
+    CPI::InterpolationType interpolation = CPI::Flat;
 
     Rate quote = 0.03714;
     ZeroCouponInflationSwap zciis(ztype, nominal, startDate, endDate, cal, paymentConvention, dc,
-                                  quote, common.ii, observationLag, CPI::AsIndex);
+                                  quote, common.ii, observationLag, interpolation);
 
     // simple structure so simple pricing engine - most work done by index
     ext::shared_ptr<DiscountingSwapEngine>
@@ -388,14 +388,14 @@ BOOST_AUTO_TEST_CASE(zciisconsistency) {
     bool subtractInflationNominal = true;
     Real dummySpread=0.0, dummyFixedRate=0.0;
     Natural fixingDays = 0;
-    Real baseCPI = CPI::laggedFixing(common.ii, startDate, observationLag, CPI::AsIndex);
+    Real baseCPI = CPI::laggedFixing(common.ii, startDate, observationLag, interpolation);
 
     ext::shared_ptr<IborIndex> dummyFloatIndex;
 
     CPISwap cS(stype, floatNominal, subtractInflationNominal, dummySpread, dummyDC, schOneDate,
                paymentConvention, fixingDays, dummyFloatIndex,
                dummyFixedRate, baseCPI, dummyDC, schOneDate, paymentConvention, observationLag,
-               common.ii, CPI::AsIndex, inflationNominal);
+               common.ii, interpolation, inflationNominal);
 
     cS.setPricingEngine(dse);
     QL_REQUIRE(fabs(cS.NPV())<1e-3,"CPISwap as ZCIIS does not reprice to zero");

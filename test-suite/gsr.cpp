@@ -20,6 +20,8 @@
 #include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/processes/gsrprocess.hpp>
+#include <ql/methods/montecarlo/pathgenerator.hpp>
+#include <ql/math/randomnumbers/rngtraits.hpp>
 #include <ql/models/shortrate/onefactormodels/gsr.hpp>
 #include <ql/instruments/nonstandardswap.hpp>
 #include <ql/instruments/nonstandardswaption.hpp>
@@ -287,6 +289,104 @@ BOOST_AUTO_TEST_CASE(testGsrModel) {
                     << HwJamNpv
                     << ") deviates from Gaussian1dJamshidianEngine NPV ("
                     << GsrJamNpv << ")");
+}
+
+BOOST_AUTO_TEST_CASE(testGsrProcessWithPathGenerator) {
+
+    BOOST_TEST_MESSAGE("Testing GSR process path generation...");
+
+    // This test verifies that GsrProcess works correctly with PathGenerator.
+    // Previously, GsrProcessCore stored references to the input arrays instead
+    // of copies, which caused crashes when temporary arrays were passed
+    // (common in language bindings like Python/SWIG).
+
+    Size timeSteps = 4;
+    Time length = 2.0;
+
+    // Create GsrProcess with temporary Array objects
+    // This simulates what happens in SWIG bindings when Python lists are converted
+    ext::shared_ptr<GsrProcess> process(
+        new GsrProcess(Array(1, 1.0),           // times (temporary)
+                       Array(2, 0.005),          // vols (temporary)
+                       Array(1, 0.03)));         // reversions (temporary)
+
+    // Create path generator
+    typedef PseudoRandom::rsg_type rsg_type;
+    typedef PathGenerator<rsg_type>::sample_type sample_type;
+
+    rsg_type rsg = PseudoRandom::make_sequence_generator(timeSteps, 42);
+    PathGenerator<rsg_type> generator(process, length, timeSteps, rsg, false);
+
+    // Generate paths - this would crash before the fix due to dangling references
+    const sample_type& sample = generator.next();
+    const Path& path = sample.value;
+
+    // Verify the path has the expected structure
+    BOOST_CHECK_EQUAL(path.length(), timeSteps + 1);
+    BOOST_CHECK_EQUAL(path.front(), 0.0);  // x0 is always 0 for GsrProcess
+
+    // Verify path values are finite (not NaN or Inf)
+    for (Size i = 0; i < path.length(); ++i) {
+        BOOST_CHECK_MESSAGE(std::isfinite(path[i]),
+                          "Path value at index " << i << " is not finite: " << path[i]);
+    }
+
+    // Generate a few more paths to ensure stability
+    for (Size n = 0; n < 10; ++n) {
+        const sample_type& s = generator.next();
+        for (Size i = 0; i < s.value.length(); ++i) {
+            BOOST_CHECK_MESSAGE(std::isfinite(s.value[i]),
+                              "Path " << n << " value at index " << i
+                              << " is not finite: " << s.value[i]);
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(testGsrModelQuoteUpdate) {
+
+    BOOST_TEST_MESSAGE("Testing GSR model when updating quotes...");
+
+    Date refDate = Settings::instance().evaluationDate();
+
+    Real modelvol = 0.01;
+    Real reversion = 0.01;
+
+    std::vector<Date> stepDates;
+    std::vector<Real> vols = {modelvol};
+    std::vector<Real> reversions = {reversion};
+
+    auto rate = ext::make_shared<SimpleQuote>(0.03);
+
+    Handle<YieldTermStructure> yts(ext::make_shared<FlatForward>(0, TARGET(), Handle<Quote>(rate), Actual365Fixed()));
+    auto model = ext::make_shared<Gsr>(yts, stepDates, vols, reversions, 50.0);
+    auto hw = ext::make_shared<HullWhite>(yts, reversion, modelvol);
+
+    Date expiry = TARGET().advance(refDate, 5 * Years);
+    Period tenor = 10 * Years;
+    auto swpIdx = ext::make_shared<EuriborSwapIsdaFixA>(tenor, yts);
+    Real forward = swpIdx->fixing(expiry);
+
+    ext::shared_ptr<VanillaSwap> underlyingFixed =
+        MakeVanillaSwap(10 * Years, swpIdx->iborIndex(), forward)
+            .withEffectiveDate(swpIdx->valueDate(expiry))
+            .withFixedLegCalendar(swpIdx->fixingCalendar())
+            .withFixedLegDayCount(swpIdx->dayCounter())
+            .withFixedLegTenor(swpIdx->fixedLegTenor())
+            .withFixedLegConvention(swpIdx->fixedLegConvention())
+            .withFixedLegTerminationDateConvention(
+                 swpIdx->fixedLegConvention());
+    auto exercise = ext::make_shared<EuropeanExercise>(expiry);
+    auto stdswaption = ext::make_shared<Swaption>(underlyingFixed, exercise);
+
+    stdswaption->setPricingEngine(
+        ext::make_shared<Gaussian1dSwaptionEngine>(model, 64, 7.0, true, false));
+    BOOST_CHECK_NO_THROW(stdswaption->NPV());
+    Real before = stdswaption->NPV();
+
+    BOOST_CHECK_NO_THROW(rate->setValue(0.04));
+
+    Real after = stdswaption->NPV();
+    BOOST_CHECK(std::fabs(before - after) > 0.01);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -18,7 +18,6 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "preconditions.hpp"
 #include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/instruments/barrieroption.hpp>
@@ -36,7 +35,6 @@
 #include <ql/quotes/simplequote.hpp>
 #include <ql/termstructures/volatility/equityfx/localconstantvol.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
-#include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
@@ -197,7 +195,7 @@ BOOST_AUTO_TEST_CASE(testFdmHestonVarianceMesher) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(testFdmHestonBarrierVsBlackScholes, *precondition(if_speed(Fast))) {
+BOOST_AUTO_TEST_CASE(testFdmHestonBarrierVsBlackScholes) {
 
     BOOST_TEST_MESSAGE("Testing FDM with barrier option in Heston model...");
 
@@ -612,7 +610,7 @@ BOOST_AUTO_TEST_CASE(testFdmHestonEuropeanWithDividends) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(testFdmHestonConvergence, *precondition(if_speed(Fast))) {
+BOOST_AUTO_TEST_CASE(testFdmHestonConvergence) {
 
     /* convergence tests based on 
        ADI finite difference schemes for option pricing in the

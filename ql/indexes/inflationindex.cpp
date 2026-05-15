@@ -31,7 +31,9 @@ namespace QuantLib {
                            CPI::InterpolationType interpolationType) {
 
         switch (interpolationType) {
+          QL_DEPRECATED_DISABLE_WARNING
           case AsIndex:
+          QL_DEPRECATED_ENABLE_WARNING
           case Flat: {
               auto fixingPeriod = inflationPeriod(date - observationLag, index->frequency());
               return index->fixing(fixingPeriod.first);
@@ -68,9 +70,11 @@ namespace QuantLib {
                             CPI::InterpolationType interpolationType) {
 
         switch (interpolationType) {
+          QL_DEPRECATED_DISABLE_WARNING
           case AsIndex: {
               return index->fixing(date - observationLag);
           }
+          QL_DEPRECATED_ENABLE_WARNING
           case Flat: {
               auto fixingPeriod = inflationPeriod(date - observationLag, index->frequency());
               return index->fixing(fixingPeriod.first);
@@ -226,9 +230,13 @@ namespace QuantLib {
         std::pair<Date, Date> fixingPeriod = inflationPeriod(fixingDate, frequency_);
 
         Date firstDateInPeriod = fixingPeriod.first;
-        Rate Z1 = zeroInflation_->zeroRate(firstDateInPeriod, Period(0,Days), false);
+        Rate Z1 = zeroInflation_->zeroRate(firstDateInPeriod, false);
         Time t1 = inflationYearFraction(frequency_, false, zeroInflation_->dayCounter(),
                                         baseDate, firstDateInPeriod);
+        // During bootstrapping, extrapolated rates can temporarily go below -1.
+        // Guard against pow of a negative base with non-integer exponent.
+        if (Z1 <= -1.0)
+            return 0.0;
         return baseFixing * std::pow(1.0 + Z1, t1);
     }
 
@@ -240,22 +248,17 @@ namespace QuantLib {
     }
 
 
+    QL_DEPRECATED_DISABLE_WARNING
+
     YoYInflationIndex::YoYInflationIndex(const ext::shared_ptr<ZeroInflationIndex>& underlyingIndex,
                                          Handle<YoYInflationTermStructure> yoyInflation)
     : InflationIndex("YYR_" + underlyingIndex->familyName(), underlyingIndex->region(),
                      underlyingIndex->revised(), underlyingIndex->frequency(),
                      underlyingIndex->availabilityLag(), underlyingIndex->currency()),
-      interpolated_(false), ratio_(true), underlyingIndex_(underlyingIndex),
+      ratio_(true), underlyingIndex_(underlyingIndex),
       yoyInflation_(std::move(yoyInflation)) {
         registerWith(underlyingIndex_);
         registerWith(yoyInflation_);
-    }
-
-    YoYInflationIndex::YoYInflationIndex(const ext::shared_ptr<ZeroInflationIndex>& underlyingIndex,
-                                         bool interpolated,
-                                         Handle<YoYInflationTermStructure> yoyInflation)
-    : YoYInflationIndex(underlyingIndex, std::move(yoyInflation)) {
-        interpolated_ = interpolated;
     }
 
     YoYInflationIndex::YoYInflationIndex(const std::string& familyName,
@@ -266,22 +269,11 @@ namespace QuantLib {
                                          const Currency& currency,
                                          Handle<YoYInflationTermStructure> yoyInflation)
     : InflationIndex(familyName, region, revised, frequency, availabilityLag, currency),
-      interpolated_(false), ratio_(false), yoyInflation_(std::move(yoyInflation)) {
+      ratio_(false), yoyInflation_(std::move(yoyInflation)) {
         registerWith(yoyInflation_);
     }
 
-    YoYInflationIndex::YoYInflationIndex(const std::string& familyName,
-                                         const Region& region,
-                                         bool revised,
-                                         bool interpolated,
-                                         Frequency frequency,
-                                         const Period& availabilityLag,
-                                         const Currency& currency,
-                                         Handle<YoYInflationTermStructure> yoyInflation)
-    : YoYInflationIndex(familyName, region, revised, frequency, availabilityLag, currency, std::move(yoyInflation)) {
-        interpolated_ = interpolated;
-    }
-
+    QL_DEPRECATED_ENABLE_WARNING
 
     Rate YoYInflationIndex::fixing(const Date& fixingDate,
                                    bool /*forecastTodaysFixing*/) const {
@@ -308,10 +300,12 @@ namespace QuantLib {
 
         auto fixingPeriod = inflationPeriod(fixingDate, frequency_);
         Date latestNeededDate;
+        QL_DEPRECATED_DISABLE_WARNING
         if (!interpolated() || fixingDate == fixingPeriod.first)
             latestNeededDate = fixingPeriod.first;
         else
             latestNeededDate = fixingPeriod.second + 1;
+        QL_DEPRECATED_ENABLE_WARNING
 
         if (ratio()) {
             return underlyingIndex_->needsForecast(latestNeededDate);
@@ -337,7 +331,9 @@ namespace QuantLib {
     Real YoYInflationIndex::pastFixing(const Date& fixingDate) const {
         if (ratio()) {
 
+            QL_DEPRECATED_DISABLE_WARNING
             auto interpolationType = interpolated() ? CPI::Linear : CPI::Flat;
+            QL_DEPRECATED_ENABLE_WARNING
 
             Rate pastFixing = CPI::laggedFixing(underlyingIndex_, fixingDate, Period(0, Months), interpolationType);
             Rate previousFixing = CPI::laggedFixing(underlyingIndex_, fixingDate - 1*Years, Period(0, Months), interpolationType);
@@ -353,7 +349,10 @@ namespace QuantLib {
             QL_REQUIRE(YY0 != Null<Rate>(),
                        "Missing " << name() << " fixing for " << periodStart);
 
-            if (!interpolated() || /* degenerate case */ fixingDate == periodStart) {
+            QL_DEPRECATED_DISABLE_WARNING
+            bool is_interpolated = interpolated();
+            QL_DEPRECATED_ENABLE_WARNING
+            if (!is_interpolated || /* degenerate case */ fixingDate == periodStart) {
 
                 return YY0;
 
@@ -373,7 +372,10 @@ namespace QuantLib {
     Real YoYInflationIndex::forecastFixing(const Date& fixingDate) const {
 
         Date d;
-        if (interpolated()) {
+        QL_DEPRECATED_DISABLE_WARNING
+        bool is_interpolated = interpolated();
+        QL_DEPRECATED_ENABLE_WARNING
+        if (is_interpolated) {
             d = fixingDate;
         } else {
             // if the value is not interpolated use the starting value
@@ -381,44 +383,42 @@ namespace QuantLib {
             std::pair<Date,Date> fixingPeriod = inflationPeriod(fixingDate, frequency_);
             d = fixingPeriod.first;
         }
-        return yoyInflation_->yoyRate(d,0*Days);
+        return yoyInflation_->yoyRate(d);
     }
 
     ext::shared_ptr<YoYInflationIndex> YoYInflationIndex::clone(
                            const Handle<YoYInflationTermStructure>& h) const {
-        QL_DEPRECATED_DISABLE_WARNING
         if (ratio_) {
-            // NOLINTNEXTLINE(modernize-make-shared)
-            return ext::shared_ptr<YoYInflationIndex>(
-                new YoYInflationIndex(underlyingIndex_, interpolated_, h));
+            return ext::make_shared<YoYInflationIndex>(underlyingIndex_, h);
         } else {
-            // NOLINTNEXTLINE(modernize-make-shared)
-            return ext::shared_ptr<YoYInflationIndex>(
-                new YoYInflationIndex(familyName_, region_, revised_,
-                                      interpolated_, frequency_,
-                                      availabilityLag_, currency_, h));
+            return ext::make_shared<YoYInflationIndex>(familyName_, region_, revised_,
+                                                       frequency_, availabilityLag_,
+                                                       currency_, h);
         }
-        QL_DEPRECATED_ENABLE_WARNING
     }
 
 
     CPI::InterpolationType
     detail::CPI::effectiveInterpolationType(const QuantLib::CPI::InterpolationType& type) {
+        QL_DEPRECATED_DISABLE_WARNING
         if (type == QuantLib::CPI::AsIndex) {
             return QuantLib::CPI::Flat;
         } else {
             return type;
         }
+        QL_DEPRECATED_ENABLE_WARNING
     }
 
     CPI::InterpolationType
     detail::CPI::effectiveInterpolationType(const QuantLib::CPI::InterpolationType& type,
                                             const ext::shared_ptr<YoYInflationIndex>& index) {
+        QL_DEPRECATED_DISABLE_WARNING
         if (type == QuantLib::CPI::AsIndex) {
             return index->interpolated() ? QuantLib::CPI::Linear : QuantLib::CPI::Flat;
         } else {
             return type;
         }
+        QL_DEPRECATED_ENABLE_WARNING
     }
 
     bool detail::CPI::isInterpolated(const QuantLib::CPI::InterpolationType& type) {

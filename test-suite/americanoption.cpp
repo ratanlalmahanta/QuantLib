@@ -19,7 +19,6 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "preconditions.hpp"
 #include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/any.hpp>
@@ -85,8 +84,7 @@ struct AmericanOptionData {
 
 BOOST_AUTO_TEST_CASE(testBaroneAdesiWhaleyValues) {
 
-    BOOST_TEST_MESSAGE("Testing Barone-Adesi and Whaley approximation "
-                       "for American options...");
+    BOOST_TEST_MESSAGE("Testing Barone-Adesi and Whaley approximation for American options...");
 
     /* The data below are from
        "Option pricing formulas", E.G. Haug, McGraw-Hill 1998
@@ -185,8 +183,7 @@ BOOST_AUTO_TEST_CASE(testBaroneAdesiWhaleyValues) {
 
 BOOST_AUTO_TEST_CASE(testBjerksundStenslandValues) {
 
-    BOOST_TEST_MESSAGE("Testing Bjerksund and Stensland approximation "
-                       "for American options...");
+    BOOST_TEST_MESSAGE("Testing Bjerksund and Stensland approximation for American options...");
 
     AmericanOptionData values[] = {
         //      type, strike,   spot,    q,    r,    t,  vol,   value, tol
@@ -377,8 +374,7 @@ BOOST_AUTO_TEST_CASE(testJuValues) {
 
 BOOST_AUTO_TEST_CASE(testFdValues) {
 
-    BOOST_TEST_MESSAGE("Testing finite-difference and QR+ engine "
-                       "for American options...");
+    BOOST_TEST_MESSAGE("Testing finite-difference and QR+ engine for American options...");
 
     Date today = Date::todaysDate();
     DayCounter dc = Actual360();
@@ -557,7 +553,7 @@ BOOST_AUTO_TEST_CASE(testFdAmericanGreeks) {
     testFdGreeks<FdBlackScholesVanillaEngine>();
 }
 
-BOOST_AUTO_TEST_CASE(testFdShoutGreeks, *precondition(if_speed(Fast))) {
+BOOST_AUTO_TEST_CASE(testFdShoutGreeks) {
     BOOST_TEST_MESSAGE("Testing finite-differences shout option greeks...");
     testFdGreeks<FdBlackScholesShoutEngine>();
 }
@@ -858,7 +854,7 @@ BOOST_AUTO_TEST_CASE(testTodayIsDividendDate) {
     BOOST_CHECK_THROW(option.theta(), QuantLib::Error);
 
     Real diffNpv = std::abs(escrowedNpv - spotNpv);
-    Real tol = 5e-2;
+    const Real tol = 5e-2;
 
     if (diffNpv > tol) {
         BOOST_FAIL("failed to compare American option NPV with "
@@ -871,7 +867,6 @@ BOOST_AUTO_TEST_CASE(testTodayIsDividendDate) {
 
     const Real diffDelta = std::abs(escrowedDelta - spotDelta);
 
-    tol = 1e-3;
     if (diffDelta > tol) {
         BOOST_FAIL("failed to compare American option Delta with "
                    "escrowed and spot dividend model "
@@ -909,7 +904,6 @@ BOOST_AUTO_TEST_CASE(testTodayIsDividendDate) {
     BOOST_CHECK_NO_THROW(option.theta());
 
     diffNpv = std::abs(escrowedNpv - spotNpv);
-    tol = 5e-2;
 
     if (diffNpv > tol) {
         BOOST_FAIL("failed to compare American option NPV with "
@@ -1371,8 +1365,7 @@ BOOST_AUTO_TEST_CASE(testQdAmericanEngines) {
 }
 
 BOOST_AUTO_TEST_CASE(testQdFpIterationScheme) {
-    BOOST_TEST_MESSAGE("Testing Legendre and tanh-sinh iteration "
-                       "scheme for QD+ fixed-point American engine...");
+    BOOST_TEST_MESSAGE("Testing Legendre and tanh-sinh iteration scheme for QD+ fixed-point American engine...");
 
     const Real tol = 1e-8;
     const Size l=32, m=6, n=18, p=36;
@@ -1398,8 +1391,7 @@ BOOST_AUTO_TEST_CASE(testQdFpIterationScheme) {
 }
 
 BOOST_AUTO_TEST_CASE(testAndersenLakeHighPrecisionExample) {
-    BOOST_TEST_MESSAGE("Testing Andersen, Lake and Offengenden "
-                        "high precision example...");
+    BOOST_TEST_MESSAGE("Testing Andersen, Lake and Offengenden high precision example...");
 
     // Example and results are taken from
     //    Leif Andersen, Mark Lake and Dimitri Offengenden (2015)
@@ -1494,8 +1486,7 @@ BOOST_AUTO_TEST_CASE(testAndersenLakeHighPrecisionExample) {
 }
 
 BOOST_AUTO_TEST_CASE(testQdEngineStandardExample) {
-    BOOST_TEST_MESSAGE("Testing Andersen, Lake and Offengenden "
-                        "standard example...");
+    BOOST_TEST_MESSAGE("Testing Andersen, Lake and Offengenden standard example...");
 
     const DayCounter dc = Actual365Fixed();
     const Date today = Date(1, June, 2022);
@@ -1585,8 +1576,7 @@ class QdFpGaussLobattoScheme: public QdFpIterationScheme {
 
 
 BOOST_AUTO_TEST_CASE(testBulkQdFpAmericanEngine) {
-    BOOST_TEST_MESSAGE("Testing Andersen, Lake and Offengenden "
-                        "bulk examples...");
+    BOOST_TEST_MESSAGE("Testing Andersen, Lake and Offengenden bulk examples...");
 
     // Examples are taken from
     //    Leif Andersen, Mark Lake and Dimitri Offengenden (2015)
@@ -1695,7 +1685,7 @@ BOOST_AUTO_TEST_CASE(testBulkQdFpAmericanEngine) {
 
 BOOST_AUTO_TEST_CASE(testQdEngineWithLobattoIntegral) {
     BOOST_TEST_MESSAGE("Testing Andersen, Lake and Offengenden "
-                        "with high precision Gauss-Lobatto integration...");
+                       "with high precision Gauss-Lobatto integration...");
 
     const DayCounter dc = Actual365Fixed();
     const Date today = Date(5, November, 2022);
@@ -1832,8 +1822,7 @@ BOOST_AUTO_TEST_CASE(testQdNegativeDividendYield) {
 }
 
 BOOST_AUTO_TEST_CASE(testBjerksundStenslandEuropeanGreeks) {
-    BOOST_TEST_MESSAGE("Testing Bjerksund-Stensland greeks when early "
-                       "exercise is not optimal...");
+    BOOST_TEST_MESSAGE("Testing Bjerksund-Stensland greeks when early exercise is not optimal...");
 
     const Date today = Date(5, November, 2022);
     Settings::instance().evaluationDate() = today;
@@ -2179,6 +2168,132 @@ BOOST_AUTO_TEST_CASE(testSingleBjerksundStenslandGreeks) {
 
     if (exerciseType != "American")
         BOOST_FAIL("American exercise type expected");
+}
+
+BOOST_AUTO_TEST_CASE(testFdEarliestExerciseDate) {
+    BOOST_TEST_MESSAGE(
+        "Testing that the FD engine respects the earliest date for American exercise...");
+
+    // A deep ITM American put where early exercise is valuable.
+    // Restricting the exercise window should reduce the price toward
+    // the European value.
+
+    const Date today(15, January, 2025);
+    Settings::instance().evaluationDate() = today;
+    DayCounter dc = Actual365Fixed();
+
+    const Real S0 = 80.0;
+    const Real K = 100.0;
+    const Volatility sigma = 0.25;
+    const Rate r = 0.05;
+    const Rate q = 0.0;
+
+    Handle<Quote> spot(ext::make_shared<SimpleQuote>(S0));
+    Handle<YieldTermStructure> qTS(flatRate(today, q, dc));
+    Handle<YieldTermStructure> rTS(flatRate(today, r, dc));
+    Handle<BlackVolTermStructure> volTS(flatVol(today, sigma, dc));
+
+    auto bsmProcess = ext::make_shared<BlackScholesMertonProcess>(
+        spot, qTS, rTS, volTS);
+
+    const Date maturity = today + Period(1, Years);
+    auto payoff = ext::make_shared<PlainVanillaPayoff>(Option::Put, K);
+
+    // Full American exercise
+    auto fullExercise = ext::make_shared<AmericanExercise>(today, maturity);
+    VanillaOption fullOption(payoff, fullExercise);
+    auto fdEngine = ext::make_shared<FdBlackScholesVanillaEngine>(
+        bsmProcess, 200, 200, 0);
+    fullOption.setPricingEngine(fdEngine);
+    const Real fullPrice = fullOption.NPV();
+
+    // European benchmark
+    auto euroExercise = ext::make_shared<EuropeanExercise>(maturity);
+    VanillaOption euroOption(payoff, euroExercise);
+    auto euroEngine = ext::make_shared<AnalyticEuropeanEngine>(bsmProcess);
+    euroOption.setPricingEngine(euroEngine);
+    const Real euroPrice = euroOption.NPV();
+
+    const Real earlyExPremium = fullPrice - euroPrice;
+
+    // Sanity: the early exercise premium should be significant
+    // for this deep ITM put with 5% rates
+    BOOST_CHECK(earlyExPremium > 1.0);
+
+    // Restricted exercise: only last 3 months
+    const Date lateStart = maturity - Period(3, Months);
+    auto lateExercise = ext::make_shared<AmericanExercise>(lateStart, maturity);
+    VanillaOption lateOption(payoff, lateExercise);
+    lateOption.setPricingEngine(fdEngine);
+    const Real latePrice = lateOption.NPV();
+
+    // The restricted option should be worth less than full American
+    BOOST_CHECK_MESSAGE(fullPrice - latePrice > 0.01,
+        "Restricting exercise window should reduce price: "
+        "full=" << fullPrice << " late=" << latePrice);
+
+    // The restricted option should be worth more than European
+    // (it still has some early exercise value in the last 3 months)
+    BOOST_CHECK_MESSAGE(latePrice > euroPrice + 0.01,
+        "Restricted American should exceed European: "
+        "late=" << latePrice << " euro=" << euroPrice);
+
+    // Monotonicity: longer exercise window -> higher price
+    const Date midStart = maturity - Period(6, Months);
+    auto midExercise = ext::make_shared<AmericanExercise>(midStart, maturity);
+    VanillaOption midOption(payoff, midExercise);
+    midOption.setPricingEngine(fdEngine);
+    const Real midPrice = midOption.NPV();
+
+    BOOST_CHECK_MESSAGE(midPrice >= latePrice - 1e-8,
+        "Wider window should give higher price: "
+        "6M=" << midPrice << " 3M=" << latePrice);
+    BOOST_CHECK_MESSAGE(fullPrice >= midPrice - 1e-8,
+        "Full window should give highest price: "
+        "full=" << fullPrice << " 6M=" << midPrice);
+}
+
+BOOST_AUTO_TEST_CASE(testBaroneAdesiWhaleyNegativeRates) {
+
+    BOOST_TEST_MESSAGE("Testing Barone-Adesi-Whaley engine with negative rates...");
+
+    // Issue #1291: BAW crashes with a cryptic error when rates are negative.
+    // Verify that it now throws a clear error message instead.
+
+    Date today = Date::todaysDate();
+    DayCounter dc = Actual360();
+
+    auto spot = ext::make_shared<SimpleQuote>(36.0);
+    auto qRate = ext::make_shared<SimpleQuote>(0.0);
+    auto rRate = ext::make_shared<SimpleQuote>(-0.012);
+    auto vol = ext::make_shared<SimpleQuote>(0.20);
+
+    auto stochProcess = ext::make_shared<BlackScholesMertonProcess>(
+        Handle<Quote>(spot),
+        Handle<YieldTermStructure>(flatRate(today, qRate, dc)),
+        Handle<YieldTermStructure>(flatRate(today, rRate, dc)),
+        Handle<BlackVolTermStructure>(flatVol(today, vol, dc)));
+
+    auto payoff = ext::make_shared<PlainVanillaPayoff>(Option::Put, 40.0);
+    Date exDate = today + Period(1, Years);
+    auto exercise = ext::make_shared<AmericanExercise>(today, exDate);
+
+    VanillaOption option(payoff, exercise);
+    option.setPricingEngine(
+        ext::make_shared<BaroneAdesiWhaleyApproximationEngine>(stochProcess));
+
+    BOOST_CHECK_EXCEPTION(option.NPV(), Error,
+                          ExpectedErrorMessage("negative interest rates"));
+
+    // also verify with a call and positive dividends
+    auto callPayoff = ext::make_shared<PlainVanillaPayoff>(Option::Call, 40.0);
+    qRate->setValue(0.06);
+    VanillaOption callOption(callPayoff, exercise);
+    callOption.setPricingEngine(
+        ext::make_shared<BaroneAdesiWhaleyApproximationEngine>(stochProcess));
+
+    BOOST_CHECK_EXCEPTION(callOption.NPV(), Error,
+                          ExpectedErrorMessage("negative interest rates"));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

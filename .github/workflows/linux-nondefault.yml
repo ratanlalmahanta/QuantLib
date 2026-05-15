@@ -3,6 +3,7 @@ on:
   schedule:
     - cron: '0 0 * * 0'
   workflow_dispatch:
+  workflow_call:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -112,7 +113,12 @@ jobs:
             cxx: clang++
           - name: "Clang 20"
             shortname: clang20
-            tag: plucky
+            tag: questing
+            cc: clang
+            cxx: clang++
+          - name: "Clang 21"
+            shortname: clang21
+            tag: resolute
             cc: clang
             cxx: clang++
           - name: "C++17 mode"
@@ -147,7 +153,7 @@ jobs:
             configureflags: --enable-unity-build
           - name: "Standard Library classes enabled"
             shortname: stdclasses
-            tag: rolling
+            tag: oracular
             cc: gcc
             cxx: g++
             configureflags: --enable-std-pointers --disable-std-any --disable-std-optional
@@ -159,7 +165,7 @@ jobs:
             configureflags: --enable-openmp
     container: ghcr.io/lballabio/quantlib-devenv:${{ matrix.tag }}
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Compiler version
       run: |
         ${{ matrix.cc }} --version
