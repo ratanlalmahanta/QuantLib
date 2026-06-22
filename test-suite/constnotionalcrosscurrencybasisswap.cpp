@@ -28,7 +28,7 @@
 #include <ql/indexes/ibor/sonia.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/termstructures/yield/discountcurve.hpp>
-#include <ql/time/calendars/all.hpp>
+#include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/types.hpp>
 #include <ql/instruments/constnotionalcrosscurrencybasisswap.hpp>
@@ -346,15 +346,17 @@ ext::shared_ptr<ConstNotionalCrossCurrencyBasisSwap> makeONBasisXCCY(Rate spotFx
         GBPNominal, GBPCurrency(), schedule, soniaIndex, GBPSpread, 1.0, 
 		GBPNominal * spotFx, USDCurrency(), schedule, sofrIndex, 0.0, 1.0, 
         0, // payPaymentLag
-        0, // recPaymentLaf
-        false, // payIncludeSpread
-        0, // payLookback
+        0, // recPaymentLag
+        false, // payCompoundSpread
+        0, // payLookbackDays
+        false, // payObservationShift
         3, // payLockoutDays
-        false, // payIsAveraged
-        false, // recIncludeSpread
-        0, // recLookback
+        RateAveraging::Compound, // payAveragingMethod
+        false, // recCompoundSpread
+        0, // recLookbackDays
+        false, // recObservationShift
         2, // recLockoutDays
-        false, // recIsAveraged
+        RateAveraging::Compound, // recAveragingMethod
         false // telescopicValueDates
     );
 }

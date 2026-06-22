@@ -699,6 +699,9 @@
     <ClInclude Include="ql\indexes\ibor\shibor.hpp">
       <Filter>indexes\ibor</Filter>
     </ClInclude>
+    <ClInclude Include="ql\indexes\ibor\shir.hpp">
+      <Filter>indexes\ibor</Filter>
+    </ClInclude>
     <ClInclude Include="ql\indexes\ibor\sofr.hpp">
       <Filter>indexes\ibor</Filter>
     </ClInclude>
@@ -2518,6 +2521,9 @@
       <Filter>pricingengines\basket</Filter>
     </ClInclude>
     <ClInclude Include="ql\pricingengines\basket\mceuropeanbasketengine.hpp">
+      <Filter>pricingengines\basket</Filter>
+    </ClInclude>
+    <ClInclude Include="ql\pricingengines\basket\gaussiancopulaspreadengine.hpp">
       <Filter>pricingengines\basket</Filter>
     </ClInclude>
     <ClInclude Include="ql\pricingengines\basket\kirkengine.hpp">
@@ -4377,6 +4383,9 @@
     <ClInclude Include="ql\methods\finitedifferences\utilities\riskneutraldensitycalculator.hpp">
       <Filter>methods\finitedifferences\utilities</Filter>
     </ClInclude>
+    <ClInclude Include="ql\methods\finitedifferences\utilities\smilesectionrndcalculator.hpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
+    </ClInclude>
     <ClInclude Include="ql\methods\finitedifferences\utilities\squarerootprocessrndcalculator.hpp">
       <Filter>methods\finitedifferences\utilities</Filter>
     </ClInclude>
@@ -4743,6 +4752,9 @@
       <Filter>indexes\ibor</Filter>
     </ClCompile>
     <ClCompile Include="ql\indexes\ibor\shibor.cpp">
+      <Filter>indexes\ibor</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\indexes\ibor\shir.cpp">
       <Filter>indexes\ibor</Filter>
     </ClCompile>
     <ClCompile Include="ql\indexes\ibor\sofr.cpp">
@@ -5937,6 +5949,9 @@
       <Filter>pricingengines\basket</Filter>
     </ClCompile>
     <ClCompile Include="ql\pricingengines\basket\mceuropeanbasketengine.cpp">
+      <Filter>pricingengines\basket</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\pricingengines\basket\gaussiancopulaspreadengine.cpp">
       <Filter>pricingengines\basket</Filter>
     </ClCompile>
     <ClCompile Include="ql\pricingengines\basket\kirkengine.cpp">
@@ -7277,6 +7292,9 @@
       <Filter>methods\finitedifferences\utilities</Filter>
     </ClCompile>
     <ClCompile Include="ql\methods\finitedifferences\utilities\riskneutraldensitycalculator.cpp">
+      <Filter>methods\finitedifferences\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ql\methods\finitedifferences\utilities\smilesectionrndcalculator.cpp">
       <Filter>methods\finitedifferences\utilities</Filter>
     </ClCompile>
     <ClCompile Include="ql\methods\finitedifferences\utilities\squarerootprocessrndcalculator.cpp">

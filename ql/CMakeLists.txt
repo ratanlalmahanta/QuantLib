@@ -221,6 +221,7 @@ set(QL_SOURCES
     indexes/ibor/libor.cpp
     indexes/ibor/saron.cpp
     indexes/ibor/shibor.cpp
+    indexes/ibor/shir.cpp
     indexes/ibor/sofr.cpp
     indexes/ibor/sonia.cpp
     indexes/ibor/zaronia.cpp
@@ -515,6 +516,7 @@ set(QL_SOURCES
     methods/finitedifferences/utilities/hestonrndcalculator.cpp
     methods/finitedifferences/utilities/localvolrndcalculator.cpp
     methods/finitedifferences/utilities/riskneutraldensitycalculator.cpp
+    methods/finitedifferences/utilities/smilesectionrndcalculator.cpp
     methods/finitedifferences/utilities/squarerootprocessrndcalculator.cpp
     methods/lattices/binomialtree.cpp
     methods/lattices/trinomialtree.cpp
@@ -681,6 +683,7 @@ set(QL_SOURCES
     pricingengines/basket/denglizhoubasketengine.cpp
     pricingengines/basket/fd2dblackscholesvanillaengine.cpp
     pricingengines/basket/fdndimblackscholesvanillaengine.cpp
+    pricingengines/basket/gaussiancopulaspreadengine.cpp
     pricingengines/basket/kirkengine.cpp
     pricingengines/basket/mcamericanbasketengine.cpp
     pricingengines/basket/mceuropeanbasketengine.cpp
@@ -1291,6 +1294,7 @@ set(QL_HEADERS
     indexes/ibor/saron.hpp
     indexes/ibor/seklibor.hpp
     indexes/ibor/shibor.hpp
+    indexes/ibor/shir.hpp
     indexes/ibor/sofr.hpp
     indexes/ibor/sonia.hpp
     indexes/ibor/swestr.hpp
@@ -1706,6 +1710,7 @@ set(QL_HEADERS
     methods/finitedifferences/utilities/hestonrndcalculator.hpp
     methods/finitedifferences/utilities/localvolrndcalculator.hpp
     methods/finitedifferences/utilities/riskneutraldensitycalculator.hpp
+    methods/finitedifferences/utilities/smilesectionrndcalculator.hpp
     methods/finitedifferences/utilities/squarerootprocessrndcalculator.hpp
     methods/finitedifferences/zerocondition.hpp
     methods/lattices/binomialtree.hpp
@@ -1919,6 +1924,7 @@ set(QL_HEADERS
     pricingengines/basket/denglizhoubasketengine.hpp
     pricingengines/basket/fd2dblackscholesvanillaengine.hpp
     pricingengines/basket/fdndimblackscholesvanillaengine.hpp    
+    pricingengines/basket/gaussiancopulaspreadengine.hpp
     pricingengines/basket/kirkengine.hpp
     pricingengines/basket/mcamericanbasketengine.hpp
     pricingengines/basket/mceuropeanbasketengine.hpp
