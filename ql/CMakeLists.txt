@@ -147,6 +147,9 @@ set(QL_SOURCES
     experimental/finitedifferences/glued1dmesher.cpp
     experimental/finitedifferences/vanillavppoption.cpp
     experimental/forward/analytichestonforwardeuropeanengine.cpp
+    experimental/fx/discountingmtmcrosscurrencybasisswapengine.cpp
+    experimental/fx/fxresetcashflows.cpp
+    experimental/fx/mtmcrosscurrencybasisswap.cpp
     experimental/inflation/cpicapfloorengines.cpp
     experimental/inflation/cpicapfloortermpricesurface.cpp
     experimental/inflation/yoycapfloortermpricesurface.cpp
@@ -266,9 +269,9 @@ set(QL_SOURCES
     instruments/cpicapfloor.cpp
     instruments/cpiswap.cpp
     instruments/creditdefaultswap.cpp
+    instruments/crosscurrencyswap.cpp
     instruments/constnotionalcrosscurrencybasisswap.cpp
     instruments/constnotionalcrosscurrencyfixedvsfloatingswap.cpp
-    instruments/constnotionalcrosscurrencyswap.cpp
     instruments/doublebarrieroption.cpp
     instruments/doublebarriertype.cpp
     instruments/equitytotalreturnswap.cpp
@@ -368,6 +371,7 @@ set(QL_SOURCES
     math/integrals/discreteintegrals.cpp
     math/integrals/exponentialintegrals.cpp
     math/integrals/filonintegral.cpp
+    math/integrals/fourierintegration.cpp
     math/integrals/gaussianorthogonalpolynomial.cpp
     math/integrals/gaussianquadratures.cpp
     math/integrals/gausslobattointegral.cpp
@@ -394,11 +398,13 @@ set(QL_SOURCES
     math/modifiedbessel.cpp
     math/optimization/armijo.cpp
     math/optimization/bfgs.cpp
+    math/optimization/cmaes.cpp
     math/optimization/conjugategradient.cpp
     math/optimization/constraint.cpp
     math/optimization/differentialevolution.cpp
     math/optimization/endcriteria.cpp
     math/optimization/goldstein.cpp
+    math/optimization/lbfgsb.cpp
     math/optimization/leastsquare.cpp
     math/optimization/levenbergmarquardt.cpp
     math/optimization/linesearch.cpp
@@ -532,6 +538,7 @@ set(QL_SOURCES
     models/equity/hestonslvfdmmodel.cpp
     models/equity/hestonslvmcmodel.cpp
     models/equity/piecewisetimedependenthestonmodel.cpp
+    models/equity/roughhestonmodel.cpp
     models/marketmodels/accountingengine.cpp
     models/marketmodels/browniangenerators/mtbrowniangenerator.cpp
     models/marketmodels/browniangenerators/sobolbrowniangenerator.cpp
@@ -761,6 +768,7 @@ set(QL_SOURCES
     pricingengines/vanilla/analytichestonhullwhiteengine.cpp
     pricingengines/vanilla/analyticpdfhestonengine.cpp
     pricingengines/vanilla/analyticptdhestonengine.cpp
+    pricingengines/vanilla/analyticroughhestonengine.cpp
     pricingengines/vanilla/baroneadesiwhaleyengine.cpp
     pricingengines/vanilla/batesengine.cpp
     pricingengines/vanilla/bjerksundstenslandengine.cpp
@@ -924,6 +932,7 @@ set(QL_SOURCES
     time/calendars/italy.cpp
     time/calendars/japan.cpp
     time/calendars/jointcalendar.cpp
+    time/calendars/malaysia.cpp
     time/calendars/malta.cpp
     time/calendars/mexico.cpp
     time/calendars/montenegro.cpp
@@ -1168,6 +1177,9 @@ set(QL_HEADERS
     experimental/forward/analytichestonforwardeuropeanengine.hpp
     experimental/fx/blackdeltacalculator.hpp
     experimental/fx/deltavolquote.hpp
+    experimental/fx/discountingmtmcrosscurrencybasisswapengine.hpp
+    experimental/fx/fxresetcashflows.hpp
+    experimental/fx/mtmcrosscurrencybasisswap.hpp
     experimental/inflation/cpicapfloorengines.hpp
     experimental/inflation/cpicapfloortermpricesurface.hpp
     experimental/inflation/genericindexes.hpp
@@ -1355,6 +1367,7 @@ set(QL_HEADERS
     instruments/cpicapfloor.hpp
     instruments/cpiswap.hpp
     instruments/creditdefaultswap.hpp
+    instruments/crosscurrencyswap.hpp
     instruments/constnotionalcrosscurrencybasisswap.hpp
     instruments/constnotionalcrosscurrencyfixedvsfloatingswap.hpp
     instruments/constnotionalcrosscurrencyswap.hpp
@@ -1470,6 +1483,7 @@ set(QL_HEADERS
     math/integrals/exponentialintegrals.hpp
     math/integrals/expsinhintegral.hpp
     math/integrals/filonintegral.hpp
+    math/integrals/fourierintegration.hpp
     math/integrals/gaussianorthogonalpolynomial.hpp
     math/integrals/gaussianquadratures.hpp
     math/integrals/gausslaguerrecosinepolynomial.hpp
@@ -1527,14 +1541,18 @@ set(QL_HEADERS
     math/matrixutilities/tqreigendecomposition.hpp
     math/modifiedbessel.hpp
     math/ode/adaptiverungekutta.hpp
+    math/ode/fractionaladams.hpp
+    math/ode/fractionalkernelapproximation.hpp
     math/optimization/armijo.hpp
     math/optimization/bfgs.hpp
+    math/optimization/cmaes.hpp
     math/optimization/conjugategradient.hpp
     math/optimization/constraint.hpp
     math/optimization/costfunction.hpp
     math/optimization/differentialevolution.hpp
     math/optimization/endcriteria.hpp
     math/optimization/goldstein.hpp
+    math/optimization/lbfgsb.hpp
     math/optimization/leastsquare.hpp
     math/optimization/levenbergmarquardt.hpp
     math/optimization/linesearch.hpp
@@ -1745,6 +1763,7 @@ set(QL_HEADERS
     models/equity/hestonslvfdmmodel.hpp
     models/equity/hestonslvmcmodel.hpp
     models/equity/piecewisetimedependenthestonmodel.hpp
+    models/equity/roughhestonmodel.hpp
     models/marketmodels/accountingengine.hpp
     models/marketmodels/browniangenerator.hpp
     models/marketmodels/browniangenerators/mtbrowniangenerator.hpp
@@ -2014,6 +2033,7 @@ set(QL_HEADERS
     pricingengines/vanilla/analytichestonhullwhiteengine.hpp
     pricingengines/vanilla/analyticpdfhestonengine.hpp
     pricingengines/vanilla/analyticptdhestonengine.hpp
+    pricingengines/vanilla/analyticroughhestonengine.hpp
     pricingengines/vanilla/baroneadesiwhaleyengine.hpp
     pricingengines/vanilla/batesengine.hpp
     pricingengines/vanilla/binomialengine.hpp
@@ -2179,6 +2199,7 @@ set(QL_HEADERS
     termstructures/yield/bondhelpers.hpp
     termstructures/yield/bootstraptraits.hpp
     termstructures/yield/compositezeroyieldstructure.hpp
+    termstructures/yield/derivedtermstructure.hpp
     termstructures/yield/discountcurve.hpp
     termstructures/yield/fittedbonddiscountcurve.hpp
     termstructures/yield/flatforward.hpp
@@ -2232,6 +2253,7 @@ set(QL_HEADERS
     time/calendars/italy.hpp
     time/calendars/japan.hpp
     time/calendars/jointcalendar.hpp
+    time/calendars/malaysia.hpp
     time/calendars/malta.hpp
     time/calendars/mexico.hpp
     time/calendars/montenegro.hpp
